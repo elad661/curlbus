@@ -1,0 +1,6 @@
+*.pyc
+*.pyo
+config.ini
+*.zip
+*.pickle
+sample.json

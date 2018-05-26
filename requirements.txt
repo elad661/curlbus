@@ -1,0 +1,7 @@
+xmltodict >= 0.10.2
+python-dateutil >= 2.6.0
+docopt >= 0.6.2
+aiohttp >= 3.2.1
+gino >= 0.7.3
+aiocache >= 0.9.1
+ansi2html >= 1.4.2
