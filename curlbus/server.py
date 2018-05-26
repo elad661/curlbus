@@ -67,6 +67,8 @@ class CurlbusServer(object):
         app.add_routes([web.get('/{stop_code:\d+}', self.handle_station),
                         web.get('/operators', self.handle_operator_index),
                         web.get('/{operator:\w+}', self.handle_operator),
+                        web.get('/operators/{operator}/{route_number}', self.handle_route),
+                        web.get('/operators/{operator}/{route_number}/{alternative}', self.handle_route),
                         web.get('/operators/{operator:\w+}', self.handle_operator),
                         web.get('/{operator}/{route_number}', self.handle_route),
                         web.get('/{operator}/{route_number}/{alternative}', self.handle_route),
