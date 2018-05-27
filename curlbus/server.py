@@ -265,6 +265,8 @@ class CurlbusServer(object):
         ret.append("by Elad Alfassa".rjust(43))
         ret.append("")
         ret.append("Try /<stop_code> or /operators")
+        ret.append("")
+        ret.append("Source code: https://github.com/elad661/curlbus")
         text = "\n".join(ret)+"\n"
         accept = parse_accept_header(request)
         return self.ansi_or_html(accept, request, text)
