@@ -58,3 +58,11 @@ You'll need Postgresql for the GTFS database. Other databases are not supported.
 The GTFS feed updates nightly, so you'll need to set up a cron job to call `./update_feed.sh`.
 
 It's also a good idea to occasionally run `./update_cities.sh` to download the city name database.
+
+## Development Server
+
+Running `mock_siri_server.py` and pointing your config file for it will allow you to run curlbus locally without access to the SIRI API.
+it still requires PostgreSQL.
+
+`mock_siri_server.py` will make up random arrival times for random routes when queried, but all the routes would be valid ones that actually
+stop on the requested stop according to the GTFS database.

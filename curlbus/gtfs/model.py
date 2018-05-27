@@ -120,6 +120,13 @@ class Trip(db.Model):
         stoptimes = await connection.all(StopTime.query.where(StopTime.trip_id == self.trip_id))
         return sorted(stoptimes, key=lambda s: s.stop_sequence)
 
+    async def get_last_stop_code(self, connection):
+        """ Return the destination stop_code for this trip """
+        return await connection.scalar(f"""SELECT stop_code FROM stoptimes AS st
+                                           JOIN stops AS s ON s.stop_id=st.stop_id
+                                           WHERE trip_id='{self.trip_id}'
+                                           ORDER BY st.stop_sequence DESC LIMIT 1;""")
+
 
 class StopTime(db.Model):
     """  https://developers.google.com/transit/gtfs/reference/#tripsstxt """
