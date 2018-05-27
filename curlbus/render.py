@@ -188,7 +188,7 @@ def render_route_alternatives(operator_id: str, routes: list) -> str:
         name_parts = route['long_name'].split('<->')
         ret.append("╭"+("─"*width)+"╮")
         ret.append("│" + name_parts[0].center(width) + "│")
-        ret.append("│" + "<->".center(width) + "│")
+        ret.append("│" + "▼".center(width) + "│")
         ret.append("│" + name_parts[1].center(width) + "│")
         ret.append("│" + (" "*width) + "│")
         ret.append("├" + ("─"*width) + "┤")
