@@ -28,7 +28,7 @@ footer {
 footer pre {
     display: inline-block;
 }
-footer a, footer a:visited {
+a, a:visited {
     color: white;
 }
 footer div {
