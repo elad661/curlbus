@@ -65,11 +65,14 @@ class CurlbusServer(object):
                                        config["mot"]["user_id"])
         db.init_app(app)
         app.add_routes([web.get('/{stop_code:\d+}', self.handle_station),
+                        web.get('/{stop_code:\d+}/', self.handle_station),
                         web.get('/operators', self.handle_operator_index),
+                        web.get('/operators/', self.handle_operator_index),
                         web.get('/{operator:\w+}', self.handle_operator),
+                        web.get('/{operator:\w+}/', self.handle_operator),
                         web.get('/operators/{operator}/{route_number}', self.handle_route),
                         web.get('/operators/{operator}/{route_number}/{alternative}', self.handle_route),
-                        web.get('/operators/{operator:\w+}', self.handle_operator),
+                        web.get('/operators/{operator}', self.handle_operator),
                         web.get('/{operator}/{route_number}', self.handle_route),
                         web.get('/{operator}/{route_number}/{alternative}', self.handle_route),
                         web.get('/', self.handle_index)])
@@ -148,7 +151,7 @@ class CurlbusServer(object):
 
     async def handle_route(self, request):
         """ Get a schematic map for a specific route """
-        operator = request.match_info['operator'].lower()
+        operator = request.match_info['operator'].lower().strip("/")
         db = request['connection']
         client = request.app['siriclient']
         if operator not in operators:
@@ -156,9 +159,9 @@ class CurlbusServer(object):
             return web.Response(text="Unknown operator, check /operators\n",
                                 status=404)
         operator_id = operators[operator]
-        route_number = request.match_info['route_number']
+        route_number = request.match_info['route_number'].strip("/")
         try:
-            alternative = request.match_info['alternative']
+            alternative = request.match_info['alternative'].strip("/")
         except KeyError:
             alternative = None
 
@@ -226,7 +229,7 @@ class CurlbusServer(object):
 
     async def handle_operator(self, request):
         """ Get a specific operator's page """
-        operator = request.match_info['operator'].lower()
+        operator = request.match_info['operator'].lower().strip("/")
         if operator not in operators:
             return web.Response(text="Unknown operator!\n try /operators\n",
                                 status=404)
