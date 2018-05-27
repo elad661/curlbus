@@ -110,7 +110,7 @@ class SIRIResponse(object):
         """ Serialize to a dict format which is more readable than the original source """
         visits = {k: [visit.to_dict() for visit in v] for k, v in self.visits.items()}
         return {"errors": self.errors if len(self.errors) > 0 else None,
-                "timestamp": self.timestamp,
+                "timestamp": str(self.timestamp),
                 "visits": visits}
 
     def append(self, other):
