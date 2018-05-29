@@ -118,7 +118,14 @@ def render_station_arrivals(stop_info: dict, data: SIRIResponse) -> str:
                 destination = arrival.static_info['route']['destination']['name']['HE']
             except TypeError:
                 destination = "???"
+
             line_number = arrival.line_name
+            if operator_name == "Israel Railways":
+                # Show "train number" for Israel Railways instead of the meaningless
+                # line number. A train number is unique per day and appears
+                # on the real-time departure boards in train stations
+                line_number = arrival.vehicle_ref
+
             try:
                 city = arrival.static_info['route']['destination']['address']['city']
             except TypeError:
@@ -133,8 +140,15 @@ def render_station_arrivals(stop_info: dict, data: SIRIResponse) -> str:
                 eta_text = "Now"
             else:
                 eta_text = str(eta_minutes) + "m"
-            # merged_arrivals is key'd on direction_id + operator_id + route_id + destination name
-            key = f"{arrival.operator_id}{arrival.route_id}{arrival.direction_id}{destination}"
+            if operator_name == "Israel Railways":
+                # since the train number is unique per day, we shouldn't merge
+                # arrivals - otherwise the train number column would become
+                # meaningless
+                key = line_number
+            else:
+                # for all operators except Israel Railways
+                # merged_arrivals is key'd on direction_id + operator_id + route_id + destination name
+                key = f"{arrival.operator_id}{arrival.route_id}{arrival.direction_id}{destination}"
             if key in merged_arrivals:
                 merged_arrivals[key]["etas"].append(eta_text)
                 if merged_arrivals[key]["lowest_eta"] > eta_minutes:
