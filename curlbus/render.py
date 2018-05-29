@@ -271,3 +271,17 @@ def render_route_map(route_info: dict, stops: list) -> str:
         ret.append(" ".join(line))
 
     return '\n'.join(ret)+'\n'
+
+
+def render_station_list(stations: list):
+    ret = []
+    for station in sorted(stations, key=lambda s: s["name"]["EN"] if "EN" in s["name"] else s["name"]["HE"]):
+        code = station["code"]
+        if 'EN' in station["name"]:
+            name = station["name"]["EN"]
+        else:
+            name = station["name"]["HE"]
+        ret.append([code, name])
+    ret_table = table(["Israel Railways Station Codes"], ret)
+    ret_table += 'Use https://curlbus.app/<station_code> to get arrivals.\n'
+    return ret_table

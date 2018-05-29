@@ -20,9 +20,9 @@ from . import __version__
 from aiohttp import web
 from gino.ext.aiohttp import Gino
 from .operators import operators, operators_by_id, operator_names, operator_logos
-from .render import render_station_arrivals, render_operator_index, render_route_alternatives, render_route_map
+from .render import render_station_arrivals, render_operator_index, render_route_alternatives, render_route_map, render_station_list
 from .siri import SIRIClient
-from .gtfs.utils import get_stop_info, get_routes, get_route_route, ArrivalGtfsInfo, translate_route_name, count_routes
+from .gtfs.utils import get_stop_info, get_routes, get_route_route, ArrivalGtfsInfo, translate_route_name, count_routes, get_rail_stations
 from .gtfs import model as gtfs_model
 from .html import html_template
 from aiocache import SimpleMemoryCache
@@ -70,6 +70,8 @@ class CurlbusServer(object):
                         web.get('/operators/', self.handle_operator_index),
                         web.get('/{operator:\w+}', self.handle_operator),
                         web.get('/{operator:\w+}/', self.handle_operator),
+                        web.get('/rail/stations', self.handle_rail_stations),
+                        web.get('/rail/stations/', self.handle_rail_stations),
                         web.get('/operators/{operator}/{route_number}', self.handle_route),
                         web.get('/operators/{operator}/{route_number}/{alternative}', self.handle_route),
                         web.get('/operators/{operator}', self.handle_operator),
@@ -249,12 +251,25 @@ class CurlbusServer(object):
                 ret.append(line + ANSI_RESET)
             ret.append("\n")
         if route_count > 0:
-            ret.append(f"{operator_name} has {route_count} routes - try /{operator}/<route_number>")
+            if operator != "rail":
+                ret.append(f"{operator_name} has {route_count} routes - try /{operator}/<route_number>")
+            else:
+                ret.append(f"{operator_name}: - try /rail/stations")
         else:
             # Special casing for unfortunate operators, such as the Carmelit
             ret.append(f"{operator_name} has no routes :(")
         text = "\n".join(ret)+"\n"
         return self.ansi_or_html(accept, request, text)
+
+    async def handle_rail_stations(self, request):
+        db = request['connection']
+        accept = parse_accept_header(request)
+        stations = await get_rail_stations(db)
+        if accept == "json":
+            return web.json_response(stations)
+        else:
+            rendered = render_station_list(stations)
+            return self.ansi_or_html(accept, request, rendered)
 
     async def handle_index(self, request):
         ret = []

@@ -18,7 +18,7 @@
 from aiocache import cached
 from sqlalchemy import func, select
 from .model import Trip, Route, Stop, Agency, Translation, City
-from ..operators import operator_names
+from ..operators import operator_names, operators
 
 
 @cached()
@@ -196,3 +196,25 @@ async def count_routes(db, operator_id: int) -> int:
     # this to quickly count the routes per operator.
     query = select([func.count(func.distinct(func.split_part(Route.route_desc, '-', 1)))])
     return await db.scalar(query.where(Route.agency_id == str(operator_id)))
+
+
+@cached()
+async def get_rail_stations(db):
+    """ Get all Israel Railways stations in the system """
+    rail_agency_id = operators['rail']
+    stops = await db.all(f"""SELECT distinct s.stop_code, s.stop_name
+                             FROM stops AS s
+                             JOIN stoptimes AS st ON st.stop_id=s.stop_id
+                             JOIN trips as t ON t.trip_id=st.trip_id
+                             JOIN routes as r ON r.route_id=t.route_id
+                             WHERE r.agency_id='{rail_agency_id}'""")
+    ret = []
+    for stop_code, stop_name in stops:
+        name = await Translation.get(db, stop_name)
+        if 'EN' not in name:
+            city_name = await db.first(City.query.where(City.name == stop_name))
+            if city_name is not None:
+                name['EN'] = city_name.english_name
+        ret.append({"code": stop_code,
+                    "name": name})
+    return ret
