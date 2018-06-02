@@ -5,3 +5,4 @@ aiohttp >= 3.2.1
 gino >= 0.7.3
 aiocache >= 0.9.1
 ansi2html >= 1.4.2
+setuptools >= 39.2.0
