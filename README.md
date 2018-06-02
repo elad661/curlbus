@@ -65,4 +65,4 @@ Running `mock_siri_server.py` and pointing your config file for it will allow yo
 it still requires PostgreSQL.
 
 `mock_siri_server.py` will make up random arrival times for random routes when queried, but all the routes would be valid ones that actually
-stop on the requested stop according to the GTFS database.
+stop on the requested stop according to the GTFS database. Make sure to run `update_feed.sh` before running the mock server.
