@@ -174,7 +174,8 @@ class MockSIRIServer(object):
 def main():
     arguments = docopt(__doc__)
     configfile = arguments['--config'] or "config.ini"
-    port = int(arguments['--port']) or 8081
+    port_str = arguments['--port']
+    port = int(port_str) if port_str else 8081
     config = configparser.ConfigParser()
     config.read(configfile)
     config_dict = {s: dict(config.items(s)) for s in config.sections()}
