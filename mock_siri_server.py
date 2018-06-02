@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # mock_siri_server.py - a fake SIRI-SM server for testing curlbus
 #
 # Copyright 2018 Elad Alfassa <elad@fedoraproject.org>

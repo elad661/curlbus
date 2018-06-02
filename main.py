@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # main.py - curlbus main script
 #
 # Copyright 2018 Elad Alfassa <elad@fedoraproject.org>
