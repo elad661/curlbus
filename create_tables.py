@@ -1,11 +1,11 @@
 #!/usr/bin/python3
-"""Usage: load_translations.py [-c <file>]
+"""Usage: create_tables.py [-c <file>]
 
-Load all translations from a GTFS file to the DB
+Create tables for the GTFS database
 Options:
   -c <file>, --config <file>  Use the specified configuration file.
 """
-# Copyright (C) 2016-2017 Elad Alfassa <elad@fedoraproject.org>
+# Copyright (C) 2018 Elad Alfassa <elad@fedoraproject.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@ from docopt import docopt
 from curlbus.gtfs import model
 import configparser
 import gino
-from datetime import datetime
 db = model.db
 
 
