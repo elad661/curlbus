@@ -96,7 +96,7 @@ class Route(db.Model):
 
     route_id = db.Column(db.Unicode, primary_key=True)
     agency_id = db.Column(db.Unicode)
-    route_short_name = db.Column(db.Unicode)
+    route_short_name = db.Column(db.Unicode, index=True)
     route_long_name = db.Column(db.Unicode)
     route_desc = db.Column(db.Unicode)
     route_type = db.Column(db.Integer)
