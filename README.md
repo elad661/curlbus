@@ -57,7 +57,7 @@ You'll need Postgresql for the GTFS database. Other databases are not supported.
 
 The GTFS feed updates nightly, so you'll need to set up a cron job to call `./update_feed.sh`.
 
-It's also a good idea to occasionally run `./update_cities.sh` to download the city name database.
+It's also a good idea to occasionally run `./load_cities.py` to download the city name database.
 
 ## Development Server
 

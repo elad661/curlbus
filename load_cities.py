@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-"""Usage: load_cities.py INPUT [-c <file>]
+"""Usage: load_cities.py [-c <file>]
 
 Load
 Options:
@@ -20,15 +20,22 @@ Options:
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-from docopt import docopt
-import csv
+# Note: this really shouldn't be async, but having it use sync would require
+# specifying the database connection string twice in the configuration
+# (once for the async dialect used by gino, once for the regular dialect)
+# and I kinda want to avoid that
+
 from curlbus.gtfs import model
-import codecs
+from docopt import docopt
+import aiohttp
+import asyncio
 import configparser
+import csv
 import gino
+import io
 import time
-import json
+# https://data.gov.il/dataset/citiesandsettelments/resource/d4901968-dad3-4845-a9b0-a57d027f11ab
+DATASET = "https://data.gov.il/dataset/3fc54b81-25b3-4ac7-87db-248c3e1602de/resource/d4901968-dad3-4845-a9b0-a57d027f11ab/download/yeshuvim20180501.csv"
 
 db = model.db
 
@@ -45,6 +52,7 @@ def flip_brackets(source: str) -> str:
             ret += char
     return ret
 
+
 async def main():
     start = time.time()
     arguments = docopt(__doc__)
@@ -55,7 +63,10 @@ async def main():
     engine = await gino.create_engine(dsn)
     db.bind = engine
     await db.gino.create_all()
-    with codecs.open(arguments['INPUT'], encoding="windows-1255") as f:
+    async with aiohttp.ClientSession() as session:
+        print("Downloading city name dataset...")
+        response = await session.get(DATASET)
+        f = io.StringIO(await response.text())
         print(f"Loading cities...")
         f.readline()  # skip the first line
         reader = csv.DictReader(f)
@@ -63,7 +74,8 @@ async def main():
         for row in reader:
             hebrew_name = flip_brackets(row['שם_ישוב'].strip())
             english_name = row['שם_ישוב_לועזי'].strip().title()
-            cities.append({'name': hebrew_name, 'english_name': english_name})
+            if english_name:
+                cities.append({'name': hebrew_name, 'english_name': english_name})
         total = len(cities)
         print(f"Total: {total}")
         async with db.bind.acquire() as conn:
