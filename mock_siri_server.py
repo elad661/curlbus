@@ -85,11 +85,13 @@ STOPVISIT_TEMPLATE = """
 </ns3:MonitoredStopVisit>
 """
 
-RANDOM_TRIPS_QUERY = """select distinct t.trip_id ,random() as r
-                        from stoptimes as st
-                        join trips as t on t.trip_id=st.trip_id
-                        join stops as s on s.stop_id=st.stop_id
-                        where s.stop_code='{code}' order by r limit 5;"""
+RANDOM_TRIPS_QUERY = """SELECT t.trip_id
+                        FROM stoptimes as st
+                        JOIN trips as t ON t.trip_id=st.trip_id
+                        JOIN stops as s ON s.stop_id=st.stop_id
+                        WHERE s.stop_code='{code}'
+                        GROUP BY t.trip_id
+                        ORDER BY random() LIMIT 5;"""
 
 
 def parse_request(data: dict) -> list:
