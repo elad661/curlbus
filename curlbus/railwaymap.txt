@@ -1,0 +1,82 @@
+Israel Railways Network Map
+[Not to scale]
+
+     Nahariya  ┬     ┬
+               │     │
+         Acre  *     *         Ahihud
+               │ ┌───│─────────*─────────────@ Carmi'el
+               │ │ ┌─│─────────*─────────────@
+      Motzkin  ┿━┿━┿━┿
+               │ │ │ │
+      K. Haim  * │ * *
+               │ │ │ │     Yokne'am        Afula
+               │ │ │ │ ┌───*───────*───────*────────────────@ B. Shean
+     Bay CBS.  ┿━┿━┿━┿━┿           K. Baruch
+               │ │ │ │ │
+     Haifa C.  ┿━┿━┿━┿━┿
+               │ │ │ │ │
+               * * * * * Bat Galim
+               │ │ │ │ │
+               * * ┴ * * Carmeal Beach
+               │ │   │ │
+               │ │   * ┴ Atlit
+               │ │   │
+   Binyamina ┬ │ │   *
+             │ │ │   │
+    Ceasarea * │ │   │
+             │ │ │   │
+      Hadera * │ *   │
+             │ │ │   │
+     Netanya * │ │ # │
+             │ │ │ │ │
+   Netanya S.* │ │ │ │
+             │ │ │ │ │
+   B.Yehusua * │ │ * │      Ra'anana W.             Sokolov Nordeu
+             │ │ │ │ │      @───────────*───────────*───────*─╮
+   Herzeliya * │ │ * │                  Ra'anana S.           │
+             │ │ │ │ │                                        │
+             │ │ │ │ │                    K. Arye             * Rosh Ha'ayin
+           ┌─│─│─│─│─│─────────────*──────*────────*──────────╯
+   T.A Uni ┿━┿━┿━┿━┿━┿             Bnei Brak       Segula
+           │ │ │ │ │ │
+  T.A Ctr. ┿━┿━┿━┿━┿━┿
+           │ │ │ │ │ │
+  HaShalom * * * * * *
+           │ │ │ │ │ │
+  HaHagana ┿━┿━┿━┿━┿━┿
+           │ │ │ │ │ │          Airport                          Modi'in
+         ╭─╯ ╰╮╰╮╰╮╰╮╰──────────*──────────────*─────────────────@
+         │    ╰╮╰╮╰╮│                          Modi'in Outskirts
+ Holon J *     │ │ │╰───────────╮
+         │     │ │ ╰──────────╮ │
+         │     │ ╰──────────╮ │ │
+ Holon W *     ╰─*────────╮ │ │ │
+         │       K. Habad │ │ │ │
+Bat Yam Y*                * │ │ * Lod G.Aviv
+         │                │ │ │ │
+  Rishon *              ┯━┿━┿━┿━┿ Lod
+         │ Rishonim @───╯ │ │ │ │
+         │      B. Yaakov * │ │ │                                Jlm Zoo  Jlm.
+         │                │ * │ * Ramle           ┌──────────────*────────@
+         │              ╭─╯ │ │ ╰─────────────────@ B. Shemesh
+         │      Rehovot *   │ │
+ Yavne W *              │   │ │
+         │     Yavne E. *   │ │
+         │     ╭────────╯   │ │
+  Ashdod *     *            │ │
+         │     │            │ │
+Ashkelon ┿━━━━━┷            │ │
+         │                  * * Kiryat Gat
+  Sderot *                  │ │
+         │            Rahat * │
+ Netivot *                  │ │
+         │                  │ │
+         ╰────*────────╮    │ │
+              Ofakim   │    │ │
+                       ┿━━━━┿━┿┯ Beersheba North
+                       │    │ │╰────────────────────────────────@ Dimona
+                       │    │ │
+                       ┷━━━━┷━┷ Beersheba Center
+
+---
+Use https://curlbus.app/rail/stations to get station codes.

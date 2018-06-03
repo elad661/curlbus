@@ -72,6 +72,8 @@ class CurlbusServer(object):
                         web.get('/{operator:\w+}/', self.handle_operator),
                         web.get('/rail/stations', self.handle_rail_stations),
                         web.get('/rail/stations/', self.handle_rail_stations),
+                        web.get('/rail/map', self.handle_rail_map),
+                        web.get('/rail/map/', self.handle_rail_map),
                         web.get('/operators/{operator}/{route_number}', self.handle_route),
                         web.get('/operators/{operator}/{route_number}/{alternative}', self.handle_route),
                         web.get('/operators/{operator}', self.handle_operator),
@@ -254,7 +256,7 @@ class CurlbusServer(object):
             if operator != "rail":
                 ret.append(f"{operator_name} has {route_count} routes - try /{operator}/<route_number>")
             else:
-                ret.append(f"{operator_name}: - try /rail/stations")
+                ret.append(f"{operator_name}: - try /rail/stations or /rail/map")
         else:
             # Special casing for unfortunate operators, such as the Carmelit
             ret.append(f"{operator_name} has no routes :(")
@@ -270,6 +272,16 @@ class CurlbusServer(object):
         else:
             rendered = render_station_list(stations)
             return self.ansi_or_html(accept, request, rendered)
+
+    async def handle_rail_map(self, request):
+        accept = parse_accept_header(request)
+        if accept == "json":
+            return web.json_response("not available for this endpoint")
+        else:
+            railmap = os.path.join(os.path.dirname(__file__), "railwaymap.txt")
+            with open(railmap, "r") as f:
+                railmap = f.read()
+            return self.ansi_or_html(accept, request, railmap)
 
     async def handle_index(self, request):
         ret = []
