@@ -132,10 +132,10 @@ class StopTime(db.Model):
     """  https://developers.google.com/transit/gtfs/reference/#tripsstxt """
     __tablename__ = 'stoptimes'
 
-    trip_id = db.Column(db.Unicode, primary_key=True)
+    trip_id = db.Column(db.Unicode, primary_key=True, index=True)
     arrival_time = db.Column(db.Unicode, primary_key=True)
     departure_time = db.Column(db.Unicode)
-    stop_id = db.Column(db.Unicode, primary_key=True)
+    stop_id = db.Column(db.Unicode, primary_key=True, index=True)
     stop_sequence = db.Column(db.Integer, primary_key=True)
     pickup_type = db.Column(db.Boolean)
     drop_off_type = db.Column(db.Boolean)
