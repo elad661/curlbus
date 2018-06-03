@@ -27,9 +27,11 @@ from aiocache.base import BaseCache
 from itertools import zip_longest
 from datetime import datetime
 from typing import List
+from textwrap import dedent
 GROUP_SIZE = 10
 
-_SIRI_REQUEST_TEMPLATE = '''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:acsb="http://www.ifopt.org.uk/acsb" xmlns:datex2="http://datex2.eu/schema/1_0/1_0" xmlns:ifopt="http://www.ifopt.org.uk/ifopt" xmlns:siri="http://www.siri.org.uk/siri" xmlns:siriWS="http://new.webservice.namespace" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="./siri">
+_SIRI_REQUEST_TEMPLATE = dedent('''
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:acsb="http://www.ifopt.org.uk/acsb" xmlns:datex2="http://datex2.eu/schema/1_0/1_0" xmlns:ifopt="http://www.ifopt.org.uk/ifopt" xmlns:siri="http://www.siri.org.uk/siri" xmlns:siriWS="http://new.webservice.namespace" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="./siri">
     <SOAP-ENV:Header />
     <SOAP-ENV:Body>
         <siriWS:GetStopMonitoringService>
@@ -41,9 +43,9 @@ _SIRI_REQUEST_TEMPLATE = '''<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xm
             </Request>
         </siriWS:GetStopMonitoringService>
     </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>'''
+</SOAP-ENV:Envelope>''').strip().replace("\n", "")
 
-_SIRI_REQUEST_BODY = '''
+_SIRI_REQUEST_BODY = dedent('''
 <siri:StopMonitoringRequest version="IL2.71" xsi:type="siri:StopMonitoringRequestStructure">
     <siri:RequestTimestamp>{timestamp}</siri:RequestTimestamp>
     <siri:MessageIdentifier xsi:type="siri:MessageQualifierStructure">{i}</siri:MessageIdentifier>
@@ -51,7 +53,7 @@ _SIRI_REQUEST_BODY = '''
     <siri:MonitoringRef xsi:type="siri:MonitoringRefStructure">{stop_code}</siri:MonitoringRef>
     <siri:MaximumStopVisits>{max_visits}</siri:MaximumStopVisits>
 </siri:StopMonitoringRequest>
-'''
+''').strip().replace("\n", "")
 
 URL = None
 
