@@ -5,7 +5,7 @@
 */
 html, body { height:99%; }
 body { background-color:#000; font-family:"Courier New",Courier,monospace; margin:0 15px; padding:0; }
-pre, td, th, p, div { color:#FFF; font-family:"Courier New",Courier,monospace; font-size:1em; }
+pre, td, th, p, div { color:#FFF; font-family:"Courier New",Courier,monospace; font-size:1em; line-height: 1em;}
 div#screen { height:99%; margin:2px; padding:0; }
 div, table { margin-bottom:1em; margin-top:0em; }
 pre, td, p { background-color:transparent; }
