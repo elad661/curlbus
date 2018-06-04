@@ -444,7 +444,7 @@ var Terminal = {
 			$('#display .command:last-child').add('#bottomline').first().append($('#spinner'));
 			this._spinnerTimeout = window.setInterval($.proxy(function() {
 				if (!$('#spinner').is(':visible')) {
-					$('#spinner').fadeIn();
+					$('#spinner').fadeIn().css("display", "inline-block");
 				}
 				this.spinnerIndex = (this.spinnerIndex + 1) % this.config.spinnerCharacters.length;
 				$('#spinner').text(this.config.spinnerCharacters[this.spinnerIndex]);

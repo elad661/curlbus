@@ -27,7 +27,7 @@ td { padding:0 1em 0 1em; }
 div#pagealert { background-color:#FFF; bottom:0px; bottom:2px; color:#000; left:2px; margin:0; padding:0; position:absolute; text-align:center; visibility:hidden; width:auto; }
 div#indicators { bottom:0px; bottom:2px; left:2px; margin:0; padding:0; position:absolute; text-align:center; }
 div#indicators span { background-color:#FFF; color:#000; display:none; }
-#spinner { margin-left:1em; padding:0; display:none; font-weight:bold; line-height:0px; }
+#spinner { margin-left:15em; padding:0; display:none; font-weight:bold; line-height:0px; margin-top: 1em;}
 div#cform { height:1px; left:0; position:absolute; top:0; width:1px; }
 img { color:#FFF; font-size:x-small; } /* for broken images */
 img.comic { background:white; padding:5px; }
