@@ -68,6 +68,7 @@ var TerminalShell = {
 	lastCommand: null,
 	process: function(terminal, cmd) {
 		try {
+			terminal.print('curl https://cursbus.app/' + cmd);
 			terminal.setWorking(true);
 			
 			fetch('https://curlbus.app/' + cmd,
@@ -79,11 +80,9 @@ var TerminalShell = {
  			 var ansi_up = new AnsiUp;
    		 var html = ansi_up.ansi_to_html(text);
 
-				//terminal.print(text)
-				//terminal.print(html)
-				terminal.print($('<pre>').html(html));
-				terminal.setWorking(false);
-				window.scrollTo(0, document.body.scrollHeight);
+		  	terminal.print($('<pre>').html(html));
+			  terminal.setWorking(false);
+			  window.scrollTo(0, document.body.scrollHeight);
 			});
 
 			this.lastCommand = cmd;
@@ -249,6 +248,13 @@ var Terminal = {
 		$('#screen').hide().fadeIn('fast', function() {
 			$('#screen').triggerHandler('cli-load');
 		});
+		
+		if (localStorage.getItem("history") !== null) {
+			this.history = JSON.parse(localStorage.getItem('history'))
+			this.historyPos = this.history.length 
+		}
+
+		TerminalShell.process(Terminal, '/')
 	},
 	
 	setCursorState: function(state, fromTimeout) {
@@ -382,6 +388,7 @@ var Terminal = {
 	
 	addHistory: function(cmd) {
 		this.historyPos = this.history.push(cmd);
+		localStorage.setItem('history', JSON.stringify(this.history))
 	},
 
 	jumpToBottom: function() {
