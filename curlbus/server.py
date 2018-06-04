@@ -80,6 +80,7 @@ class CurlbusServer(object):
                         web.get('/{operator}/{route_number}', self.handle_route),
                         web.get('/{operator}/{route_number}/{alternative}', self.handle_route),
                         web.get('/', self.handle_index)])
+        app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static/"))
         self._app = app
 
     def run(self, appconfig):
