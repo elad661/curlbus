@@ -285,19 +285,25 @@ class CurlbusServer(object):
             return self.ansi_or_html(accept, request, railmap)
 
     async def handle_index(self, request):
-        ret = []
-        logo = os.path.join(os.path.dirname(__file__), "curlbus.txt")
-        with open(logo, "r") as f:
-            logo = f.read()
-        for line in logo.splitlines():
-            ret.append(line + ANSI_RESET)
-        ret.append("\n")
-        ret.append(f"curlbus v{__version__}".center(70))
-        ret.append("by Elad Alfassa".rjust(43))
-        ret.append("")
-        ret.append("Try /<stop_code> or /operators")
-        ret.append("")
-        ret.append("Source code: https://github.com/elad661/curlbus")
-        text = "\n".join(ret)+"\n"
         accept = parse_accept_header(request)
-        return self.ansi_or_html(accept, request, text)
+        if accept != "html":
+            ret = []
+            logo = os.path.join(os.path.dirname(__file__), "curlbus.txt")
+            with open(logo, "r") as f:
+                logo = f.read()
+            for line in logo.splitlines():
+                ret.append(line + ANSI_RESET)
+            ret.append("\n")
+            ret.append(f"curlbus v{__version__}".center(70))
+            ret.append("by Elad Alfassa".rjust(43))
+            ret.append("")
+            ret.append("Try /<stop_code> or /operators")
+            ret.append("")
+            ret.append("Source code: https://github.com/elad661/curlbus")
+            text = "\n".join(ret)+"\n"
+            return web.Response(text=text)
+        else:
+            indexhtml = os.path.join(os.path.dirname(__file__), "..", "static", "index.html")
+            with open(indexhtml, "r") as f:
+                indexhtml = f.read()
+            return web.Response(text=indexhtml, content_type="text/html")
