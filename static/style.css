@@ -1,0 +1,125 @@
+
+
+div#terminal {
+  height: 99%;
+  padding: 0;
+  /* For mobile browser friendlyness */
+  width: intrinsic;           /* Safari/WebKit uses a non-standard name */
+  width: -moz-max-content;    /* Firefox/Gecko */
+  width: -webkit-max-content; /* Chrome */
+}
+#display pre {
+  white-space: pre-wrap;
+}
+#terminal p.error { color:red; }
+#terminal li { list-style:none; }
+#spinner { margin-left:15em; padding:0; display:none; font-weight:bold; line-height:0px; margin-top: 1em;}
+
+body {
+    background-color: black;
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+}
+body, html {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+svg {
+    position: fixed;
+    right: 1px;
+    bottom: 1px;
+}
+footer {
+    font-family: 'Alef', 'helvetica', sans-serif;
+    position: fixed;
+    bottom: 0;
+}
+footer pre {
+    display: inline-block;
+}
+a, a:visited {
+    color: white;
+}
+footer div {
+    text-align: center;
+    font-size: small;
+    color: gray;
+    position: fixed;
+    width: 100%;
+    bottom: 0;
+    margin: 0;
+}
+@media (pointer: coarse), (pointer: none), (hover: none)  {
+  /* attempt to hide the terminal on touch devices */
+  #bottomline {
+    display: none;
+  }
+}
+html, body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+#in {
+  position: fixed;
+  left: -1000px;
+}
+.command, pre {
+  margin: 0;
+  padding: 0;
+}
+@keyframes "blink" {
+  from,
+  to {
+    color: white;
+    background: none;
+  }
+  50% {
+    color: black;
+    background-color: white;
+  }
+}
+@-webkit-keyframes "blink" {
+  from,
+  to {
+    color: white;
+    background: none;
+  }
+  50% {
+    color: black;
+    background-color: white;
+  }
+}
+#inputline {
+  -webkit-touch-callout: none; /* iOS Safari */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+  user-select: none;
+  display: none; /* hide terminal prompt for users without JS */
+}
+#inputline.withjs {
+  display: inline-block;
+}
+#caret {
+  display: inline-block;
+  border: 1px solid white;
+  background-color: black;
+  color: white;
+}
+#in:focus ~ #inputline #caret {
+  border: none;
+  background-color: white;
+  color: black;
+}
+#in:focus ~ #inputline #caret.blink {
+  /* blink if input is focused */
+  animation: 1.5s blink step-end infinite;
+  animation-delay: 500ms;
+  -webkit-animation: 1.5s blink step-end infinite;
+  -webkit-animation-delay: 500ms;
+}

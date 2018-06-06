@@ -64,6 +64,7 @@ class CurlbusServer(object):
         app['siriclient'] = SIRIClient(config["mot"]["url"],
                                        config["mot"]["user_id"])
         db.init_app(app)
+        app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static"))
         app.add_routes([web.get('/{stop_code:\d+}', self.handle_station),
                         web.get('/{stop_code:\d+}/', self.handle_station),
                         web.get('/operators', self.handle_operator_index),
@@ -80,7 +81,6 @@ class CurlbusServer(object):
                         web.get('/{operator}/{route_number}', self.handle_route),
                         web.get('/{operator}/{route_number}/{alternative}', self.handle_route),
                         web.get('/', self.handle_index)])
-        app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static/"))
         self._app = app
 
     def run(self, appconfig):
