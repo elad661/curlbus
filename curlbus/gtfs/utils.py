@@ -18,6 +18,7 @@
 from aiocache import cached
 from sqlalchemy import func, select
 from .model import Trip, Route, Stop, Agency, Translation, City
+from .town_synonyms import towns
 from ..operators import operator_names, operators
 
 
@@ -179,6 +180,8 @@ async def translate_route_name(db, route):
         if town.replace("-", "") in stop_name or town in stop_name:
             # To avoid extra useless data such as "Kiryat Ono Terminal-Kiryat Ono"
             # or the horrifying "Modi'in Macabim Re'ut Central Station/Alighting-Modi'in-Makabim-Re'ut"
+            return stop_name
+        if town in towns and towns[town].match(stop_name):
             return stop_name
         else:
             return f"{stop_name}-{town}"
