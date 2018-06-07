@@ -43,6 +43,9 @@ class Agency(db.Model):
     agency_phone = db.Column(db.Unicode)
     agency_fare_url = db.Column(db.Unicode)
 
+    def __repr__(self):
+        return f'<Agency {self.agency_id}>'
+
 
 class Stop(db.Model):
     """  https://developers.google.com/transit/gtfs/reference/#stopstxt """
@@ -88,6 +91,9 @@ class Stop(db.Model):
     def address(self, value):
         self._address = value
 
+    def __repr__(self):
+        return f'<Stop #{self.stop_code}>'
+
 
 class Route(db.Model):
     """  https://developers.google.com/transit/gtfs/reference/#routestxt """
@@ -102,6 +108,9 @@ class Route(db.Model):
     route_type = db.Column(db.Integer)
     route_color = db.Column(db.Unicode)
 
+    def __repr__(self):
+        return f'<Route {self.route_id}>'
+
 
 class Trip(db.Model):
     """  https://developers.google.com/transit/gtfs/reference/#tripsstxt """
@@ -114,6 +123,9 @@ class Trip(db.Model):
     trip_headsign = db.Column(db.Unicode)
     direction_id = db.Column(db.Integer)
     shape_id = db.Column(db.Unicode)
+
+    def __repr__(self):
+        return f'<Trip {self.trip_id}>'
 
     async def get_stop_times(self, connection):
         """ Get all StopTime objects associated with this trip """
@@ -140,6 +152,13 @@ class StopTime(db.Model):
     pickup_type = db.Column(db.Boolean)
     drop_off_type = db.Column(db.Boolean)
     shape_dist_traveled = db.Column(db.Unicode)
+
+    def __repr__(self):
+        template = '<StopTime trip={0},time={1},stop_id={2},sequence={3}>'
+        return template.format(self.trip_id,
+                               self.arrival_time,
+                               self.stop_id,
+                               self.stop_sequence)
 
 
 class Translation(db.Model):
@@ -192,6 +211,9 @@ class City(db.Model):
 
     english_name = db.Column(db.Unicode)
     """ The official transliterated name """
+
+    def __repr__(self):
+        return f'<City translation {self.name}={self.english_name}>'
 
 
 tables = (Agency, Route, Trip, Stop, StopTime, Translation, City)

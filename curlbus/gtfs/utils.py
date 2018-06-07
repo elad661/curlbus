@@ -21,8 +21,16 @@ from .model import Trip, Route, Stop, Agency, Translation, City
 from .town_synonyms import towns
 from ..operators import operator_names, operators
 
+MINUTES = 60*60
 
-@cached()
+
+class cached_no_db(cached):
+    def get_cache_key(self, f, args, kwargs):
+        # remove "db" from args for the cache key
+        return self._key_from_args(f, args[1:], kwargs)
+
+
+@cached_no_db(ttl=30*MINUTES)
 async def translate_city_name(db, city):
     ret = None
     # Prefer the official GTFS translation database
@@ -37,7 +45,7 @@ async def translate_city_name(db, city):
     return ret
 
 
-@cached()
+@cached_no_db(ttl=30*MINUTES)
 async def get_translated_address(db, stop):
     """ Translates the 'city' value in a stop's address, if possible """
     address = stop.address
@@ -107,7 +115,7 @@ class ArrivalGtfsInfo(object):
                 "headsign": self.headsign}
 
 
-@cached()
+@cached_no_db(ttl=15*MINUTES)
 async def get_stop_info(db_session, stop_code):
     query = Stop.query.where(Stop.stop_code == stop_code).limit(1)
     query.bind = db_session
@@ -120,8 +128,7 @@ async def get_stop_info(db_session, stop_code):
             "location": {"lat": stop.stop_lat,
                          "lon": stop.stop_lon}}
 
-
-@cached()
+@cached_no_db(ttl=30*MINUTES)
 async def get_routes(db, operator_id, route_name):
     """ Get info for route by operator and name """
     routes = await db.all(Route.query.where(Route.agency_id == str(operator_id)).where(
@@ -131,7 +138,7 @@ async def get_routes(db, operator_id, route_name):
     return sorted(routes, key=lambda r: r.route_id)
 
 
-@cached()
+@cached_no_db(ttl=15*MINUTES)
 async def get_route_route(db, route_id, direction_id):
     """ Get an ordered list of stop objects that represent the route of a specific bus line """
     # 1. Find a trip for this route
@@ -153,7 +160,7 @@ async def get_route_route(db, route_id, direction_id):
     return sorted(stops, key=lambda stop: sequence[stop.stop_id])
 
 
-@cached()
+@cached_no_db(ttl=30*MINUTES)
 async def translate_route_name(db, route):
     """ Attempt to find a translation for a route's long name """
     # long route names are in the following format:
@@ -189,7 +196,7 @@ async def translate_route_name(db, route):
     return await translate_part(origin) + "<->" + await translate_part(destination)
 
 
-@cached()
+@cached_no_db(ttl=30*MINUTES)
 async def count_routes(db, operator_id: int) -> int:
     """ Count how many routes an operator has """
     # This query uses route_desc, which contains the official route license number
@@ -201,7 +208,7 @@ async def count_routes(db, operator_id: int) -> int:
     return await db.scalar(query.where(Route.agency_id == str(operator_id)))
 
 
-@cached()
+@cached_no_db(ttl=30*MINUTES)
 async def get_rail_stations(db):
     """ Get all Israel Railways stations in the system """
     rail_agency_id = operators['rail']
