@@ -32,7 +32,9 @@ var TerminalShell = {
         try {
             terminal.setWorking(true);
             if (this.commands[cmd] === undefined) {
-                cmd = cmd.replace(" ", "/");
+                // Seriously? we need regex just to replace all spaces? WTF!
+                cmd = cmd.replace(new RegExp(" ", 'g'), "/");
+
                 terminal.print('curl https://cursbus.app/' + cmd);
                 fetch('https://curlbus.app/' + cmd,
                 {
