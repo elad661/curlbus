@@ -32,6 +32,7 @@ var TerminalShell = {
         try {
             terminal.setWorking(true);
             if (this.commands[cmd] === undefined) {
+                cmd = cmd.replace(" ", "/");
                 terminal.print('curl https://cursbus.app/' + cmd);
                 fetch('https://curlbus.app/' + cmd,
                 {
