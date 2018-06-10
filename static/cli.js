@@ -87,7 +87,10 @@ var Terminal = {
 
     init: function() {
         document.getElementById("terminal").addEventListener("click", function() {
-            document.getElementById("in").focus();
+            var input = document.getElementById("in");
+            if (document.activeElement != input && String(window.getSelection()) == "") {
+              input.focus();
+            }
         });
         var input = document.getElementById("in");
         input.value = ""; // browsers might pre-fill values on reload
@@ -97,7 +100,6 @@ var Terminal = {
         document.addEventListener("keypress", function(e) {
             var input = document.getElementById("in");
             if (document.activeElement != input) {
-                console.log(e.which, e.char, e.key);
                 if (e.key == "ArrowLeft" ||
                     e.key == "ArrowRight" ||
                     e.key == "ArrowUp" ||
