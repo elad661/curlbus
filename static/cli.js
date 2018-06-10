@@ -44,6 +44,9 @@ var TerminalShell = {
                 }).then(function(text) {
                     var ansi_up = new AnsiUp;
                     var html = ansi_up.ansi_to_html(text);
+                    html = ansi_up.old_linkify(html);
+                    // linkify relative links:
+                    html = html.replace(new RegExp("(│|\\s|^)((?:\/\\w+)+)", 'gu'), '$1<a href="$2" class="curlbusrelative">$2</a>')
 
                     $('.curlmsg').fadeOut("fast");
                     terminal.print($('<pre>').html(html));
@@ -300,5 +303,6 @@ var Terminal = {
 };
 
 $(document).ready(function() {
-    Terminal.init();
+    if (window.fetch != undefined)  // Guard against IE11
+      Terminal.init();
 });

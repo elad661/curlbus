@@ -24,12 +24,13 @@ from .render import render_station_arrivals, render_operator_index, render_route
 from .siri import SIRIClient
 from .gtfs.utils import get_stop_info, get_routes, get_route_route, ArrivalGtfsInfo, translate_route_name, count_routes, get_rail_stations
 from .gtfs import model as gtfs_model
-from .html import html_template
+from .html import html_template, relative_linkify
 from aiocache import SimpleMemoryCache
 import os.path
 import ansi2html
 # monkey-patch ansi2html to get a more modern HTML document structure and a footer
 ansi2html.converter._html_template = html_template
+ansi2html.converter.linkify = relative_linkify
 CACHE_TTL = 60
 ANSI_RESET = "\033[0m\033[39m\033[49m"
 

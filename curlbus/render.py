@@ -290,7 +290,7 @@ def render_route_map(route_info: dict, stops: list) -> str:
 def render_station_list(stations: list):
     ret = []
     for station in sorted(stations, key=lambda s: s["name"]["EN"] if "EN" in s["name"] else s["name"]["HE"]):
-        code = station["code"]
+        code = "/"+station["code"]
         if 'EN' in station["name"]:
             name = station["name"]["EN"]
         else:

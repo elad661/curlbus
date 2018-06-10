@@ -1,4 +1,15 @@
 """HTML template for curlbus + ansi2html """
+from ansi2html.converter import linkify
+import re
+original_linkify = linkify
+relative_url = re.compile(r"(│|\s|^)((?:\/\w+)+)")
+
+
+def relative_linkify(line, latex_mode):
+    """ Override ansi2html linkify to add support for relative links """
+    modified = original_linkify(line, latex_mode)
+    return relative_url.sub(r'\1<a href="\2" class="curlbusrelative">\2</a>', modified)
+
 
 html_template = """<!DOCTYPE HTML>
 <html>
@@ -19,7 +30,8 @@ html_template = """<!DOCTYPE HTML>
     <input id="in" autocomplete="off" autocorrect="off">
     <div id="display">
         <pre class="ansi2html-content">
-%(content)s</pre><div></div>
+%(content)s</pre>
+        <div></div>
     </div>
     <div id="inputline"><span class="terminput"><span class="prompt">guest@curlbus:/$ </span><span><span></span><span id="caret" class="blink">&nbsp;</span>&nbsp;</span><span></span></span><span id="spinner"></span></div>
 </div>

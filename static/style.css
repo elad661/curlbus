@@ -130,3 +130,9 @@ html, body {
   -webkit-animation: 1.5s blink step-end infinite;
   -webkit-animation-delay: 500ms;
 }
+a.curlbusrelative {
+  text-decoration: none;
+}
+a.curlbusrelative:hover {
+  text-decoration: underline;
+}
