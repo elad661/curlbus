@@ -27,7 +27,7 @@ Israel Railways Network Map
              │ │ │   │
       Hadera * │ *   │
              │ │ │   │
-     Netanya * │ │ # │
+     Netanya * │ │ ┬ │
              │ │ │ │ │
    Netanya S.* │ │ │ │
              │ │ │ │ │
