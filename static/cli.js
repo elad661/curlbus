@@ -94,6 +94,25 @@ var Terminal = {
         input.addEventListener("input", function(e) {
             Terminal.updateInputDisplay();
         });
+        document.addEventListener("keypress", function(e) {
+            var input = document.getElementById("in");
+            if (document.activeElement != input) {
+                console.log(e.which, e.char, e.key);
+                if (e.key == "ArrowLeft" ||
+                    e.key == "ArrowRight" ||
+                    e.key == "ArrowUp" ||
+                    e.key == "ArrowDown" ||
+                    e.key == "Home" ||
+                    e.key == "End") {
+                  input.focus();
+                }
+                if (e.which >= 32 && e.which <= 126) {
+                  input.value += e.key;
+                  Terminal.updateInputDisplay();
+                  input.focus();
+                }
+            }
+        });
         input.addEventListener("keydown", function(e) {
             var caret = document.getElementById("caret");
             if (this._keyDownTimeout !== null) {
@@ -152,7 +171,6 @@ var Terminal = {
     },
 
     updateInputDisplay: function() {
-        var left = '', underCursor = ' ', right = '';
         this.setCursorState(false);
         var input = document.getElementById("in");
         var before_caret = input.value.slice(0, input.selectionStart);
@@ -167,8 +185,6 @@ var Terminal = {
     },
 
     clearInputBuffer: function() {
-        this.buffer = '';
-        this.pos = 0;
         var caret = document.getElementById("caret");
         document.getElementById("in").value = "";
         caret.previousSibling.textContent = "";
