@@ -35,6 +35,8 @@ footer {
     font-family: 'Alef', 'helvetica', sans-serif;
     position: fixed;
     bottom: 0;
+    background: black;
+    z-index: 2;
 }
 footer pre {
     display: inline-block;
@@ -50,6 +52,7 @@ footer div {
     width: 100%;
     bottom: 0;
     margin: 0;
+    z-index: -1;
 }
 @media (pointer: coarse), (pointer: none), (hover: none)  {
   /* attempt to hide the terminal on touch devices */
@@ -100,6 +103,10 @@ html, body {
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none;
+  background: black;
+  width: 35%;
+  z-index: 9;
+  position: absolute;
   display: none; /* hide terminal prompt for users without JS */
 }
 #inputline.withjs {
