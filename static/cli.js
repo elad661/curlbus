@@ -105,7 +105,7 @@ var Terminal = {
         });
         document.addEventListener("keypress", function(e) {
             var input = document.getElementById("in");
-            if (document.activeElement != input) {
+            if (document.activeElement != input && !e.ctrlKey && !e.metaKey) {
                 if (e.key == "ArrowLeft" ||
                     e.key == "ArrowRight" ||
                     e.key == "ArrowUp" ||
