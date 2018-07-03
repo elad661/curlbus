@@ -66,22 +66,17 @@ class CurlbusServer(object):
                                        config["mot"]["user_id"])
         db.init_app(app)
         app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static"))
-        app.add_routes([web.get('/{stop_code:\d+}', self.handle_station),
-                        web.get('/{stop_code:\d+}/', self.handle_station),
-                        web.get('/operators', self.handle_operator_index),
-                        web.get('/operators/', self.handle_operator_index),
-                        web.get('/{operator:\w+}', self.handle_operator),
-                        web.get('/{operator:\w+}/', self.handle_operator),
-                        web.get('/rail/stations', self.handle_rail_stations),
-                        web.get('/rail/stations/', self.handle_rail_stations),
-                        web.get('/rail/map', self.handle_rail_map),
-                        web.get('/rail/map/', self.handle_rail_map),
-                        web.get('/operators/{operator}/{route_number}', self.handle_route),
-                        web.get('/operators/{operator}/{route_number}/{alternative}', self.handle_route),
-                        web.get('/operators/{operator}', self.handle_operator),
-                        web.get('/{operator}/{route_number}', self.handle_route),
-                        web.get('/{operator}/{route_number}/{alternative}', self.handle_route),
-                        web.get('/', self.handle_index)])
+        app.add_routes([web.get('/{stop_code:\d+}{tail:/*}', self.handle_station),
+                        web.get('/operators{tail:/*}', self.handle_operator_index),
+                        web.get('/{operator:\w+}{tail:/*}', self.handle_operator),
+                        web.get('/rail/stations{tail:/*}', self.handle_rail_stations),
+                        web.get('/rail/map{tail:/*}', self.handle_rail_map),
+                        web.get('/operators/{operator}/{route_number}{tail:/*}', self.handle_route),
+                        web.get('/operators/{operator}/{route_number}/{alternative}{tail:/*}', self.handle_route),
+                        web.get('/operators/{operator}{tail:/*}', self.handle_operator),
+                        web.get('/{operator}/{route_number}{tail:/*}', self.handle_route),
+                        web.get('/{operator}/{route_number}/{alternative}{tail:/*}', self.handle_route),
+                        web.get('/{tail:/*}', self.handle_index)])
         self._app = app
 
     def run(self, appconfig):
