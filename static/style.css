@@ -16,8 +16,8 @@ div#terminal {
 #spinner { margin-left:15em; padding:0; display:none; font-weight:bold; line-height:0px; margin-top: 1em;}
 
 body {
-    background-color: black;
-    color: white;
+    background-color: #232729;
+    color: #eeeeec;
     font-family: monospace;
     font-size: 16px;
 }
