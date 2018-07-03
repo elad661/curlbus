@@ -35,14 +35,14 @@ footer {
     font-family: 'Alef', 'helvetica', sans-serif;
     position: fixed;
     bottom: 0;
-    background: black;
+    background: #232729;
     z-index: 2;
 }
 footer pre {
     display: inline-block;
 }
 a, a:visited {
-    color: white;
+    color: #eeeeec;
 }
 footer div {
     text-align: center;
@@ -77,23 +77,23 @@ html, body {
 @keyframes "blink" {
   from,
   to {
-    color: white;
+    color: #eeeeec;
     background: none;
   }
   50% {
-    color: black;
-    background-color: white;
+    color: #232729;
+    background-color: #eeeeec;
   }
 }
 @-webkit-keyframes "blink" {
   from,
   to {
-    color: white;
+    color: #eeeeec;
     background: none;
   }
   50% {
-    color: black;
-    background-color: white;
+    color: #232729;
+    background-color: #eeeeec;
   }
 }
 #inputline {
@@ -103,7 +103,7 @@ html, body {
   -moz-user-select: none; /* Firefox */
   -ms-user-select: none; /* Internet Explorer/Edge */
   user-select: none;
-  background: black;
+  background: #232729;
   width: 35%;
   z-index: 9;
   position: absolute;
@@ -114,14 +114,14 @@ html, body {
 }
 #caret {
   display: inline-block;
-  border: 1px solid white;
-  background-color: black;
-  color: white;
+  border: 1px solid #eeeeec;
+  background-color: #232729;
+  color: #eeeeec;
 }
 #in:focus ~ #inputline #caret {
   border: none;
-  background-color: white;
-  color: black;
+  background-color: #eeeeec;
+  color: #232729;
 }
 #in:focus ~ #inputline #caret.blink {
   /* blink if input is focused */
