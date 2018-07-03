@@ -22,7 +22,7 @@ from gino.ext.aiohttp import Gino
 from .operators import operators, operators_by_id, operator_names, operator_logos
 from .render import render_station_arrivals, render_operator_index, render_route_alternatives, render_route_map, render_station_list
 from .siri import SIRIClient
-from .gtfs.utils import get_stop_info, get_routes, get_route_route, ArrivalGtfsInfo, translate_route_name, count_routes, get_rail_stations
+from .gtfs.utils import get_stop_info, get_routes, get_route_route, get_arrival_gtfs_info, translate_route_name, count_routes, get_rail_stations
 from .gtfs import model as gtfs_model
 from .html import html_template, relative_linkify
 from aiocache import SimpleMemoryCache
@@ -115,15 +115,11 @@ class CurlbusServer(object):
                 return web.Response(text="Invalid stop code\n",
                                     status=404)
             response = await client.request([stop_code])
-            # import pickle
-            # with open("test5.pickle", "wb") as f:
-            #     pickle.dump(response, f)
             for _, visits in response.visits.items():
                 for arrival in visits:
-                    gtfsinfo = ArrivalGtfsInfo()
-                    await gtfsinfo.load(arrival, request['connection'])
+                    gtfsinfo = await get_arrival_gtfs_info(arrival, request['connection'])
                     arrival.static_info = {"stop_info": stop_info,
-                                           "route": gtfsinfo.to_dict()}
+                                           "route": gtfsinfo}
             await cache.set(cache_key, {"response": response,
                                         "stop_info": stop_info}, ttl=CACHE_TTL)
         if accept == 'json':

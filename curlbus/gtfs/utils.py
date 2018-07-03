@@ -55,65 +55,57 @@ async def get_translated_address(db, stop):
     return address
 
 
-class ArrivalGtfsInfo(object):
-    def __init__(self):
-        self.destination = None
-        self.destination_name = None
-        self.headsign = None
-        self.agency_name = None
-        self.agency_url = None
-
-    async def load(self, arrival, db):
+async def get_arrival_gtfs_info(arrival, db):
         trip_query = db.first(Trip.query.where(Trip.trip_id == str(arrival.trip_id)))
-        route_query = db.first(Route.query.where(Route.route_id == arrival.route_id))
         agency_query = db.first(Agency.query.where(Agency.agency_id == arrival.operator_id))
 
-        self._trip = await trip_query
-        self._route = await route_query
-        self._agency = await agency_query
+        trip = await trip_query
+        agency = await agency_query
 
-        if self._trip:
+        destination = None
+        destination_name = None
+        destination_address = None
+
+        headsign = None
+        agency = {"name": {"HE": agency.agency_name,
+                           "EN": operator_names[int(arrival.operator_id)]},
+                  "url": agency.agency_url}
+
+        if trip:
             # Prefer destination from trip
-            stoptimes = await self._trip.get_stop_times(db)
-            destination_id = stoptimes[-1].stop_id
-            self.destination = await db.first(Stop.query.where(Stop.stop_id == destination_id))
-            self.destination_name = await Translation.get(db, self.destination.stop_name)
-            if self._trip.trip_headsign is not None:
-                self.headsign = await Translation.get(db, self._trip.trip_headsign)
+            last_stop = await trip.get_last_stop_code(db)
+            destination = await db.first(Stop.query.where(Stop.stop_code == last_stop))
+            destination_name = await Translation.get(db, destination.stop_name)
+            if trip.trip_headsign is not None:
+                headsign = await Translation.get(db, trip.trip_headsign)
         else:
             # if we don't have a trip (for example if the GTFS feed is broken)
             # try using destination_id from the realtime data
-            self.destination = await db.first(Stop.query.where(Stop.stop_code == str(arrival.destination_id)))
-            if self.destination is not None:
-                self.destination_name = await Translation.get(db, self.destination.stop_name)
+            destination = await db.first(Stop.query.where(Stop.stop_code == str(arrival.destination_id)))
+            if destination is not None:
+                destination_name = await Translation.get(db, destination.stop_name)
             else:
                 # Sometimes the GTFS feed is so broken that it doesn't have
                 # some stops that the realtime data does have.
-                self.destination_name = None
-            self.headsign = None
+                destination_name = None
+            headsign = None
 
-        if self.destination:
-            self.destination_address = await get_translated_address(db, self.destination)
+        if destination:
+            destination_address = await get_translated_address(db, destination)
         else:
-            self.destination_address = None
+            destination_address = None
 
-        self.agency_name = {"HE": self._agency.agency_name,
-                            "EN": operator_names[int(arrival.operator_id)]}
-        self.agency_url = self._agency.agency_url
-
-    def to_dict(self) -> dict:
-        if self.destination:
-            destination = {"code": self.destination.stop_code,
-                           "name": self.destination_name,
-                           "address": self.destination_address,
-                           "location": {"lat": self.destination.stop_lat,
-                                        "lon": self.destination.stop_lon}}
+        if destination:
+            destination = {"code": destination.stop_code,
+                           "name": destination_name,
+                           "address": destination_address,
+                           "location": {"lat": destination.stop_lat,
+                                        "lon": destination.stop_lon}}
         else:
             destination = None
         return {"destination": destination,
-                "agency": {"name": self.agency_name,
-                           "url": self.agency_url},
-                "headsign": self.headsign}
+                "agency": agency,
+                "headsign": headsign}
 
 
 @cached_no_db(ttl=15*MINUTES)
