@@ -78,7 +78,7 @@ class ArrivalGtfsInfo(object):
             destination_id = stoptimes[-1].stop_id
             self.destination = await db.first(Stop.query.where(Stop.stop_id == destination_id))
             self.destination_name = await Translation.get(db, self.destination.stop_name)
-            if self._trip.trip_headsign != "":
+            if self._trip.trip_headsign is not None:
                 self.headsign = await Translation.get(db, self._trip.trip_headsign)
         else:
             # if we don't have a trip (for example if the GTFS feed is broken)
