@@ -78,7 +78,8 @@ class ArrivalGtfsInfo(object):
             destination_id = stoptimes[-1].stop_id
             self.destination = await db.first(Stop.query.where(Stop.stop_id == destination_id))
             self.destination_name = await Translation.get(db, self.destination.stop_name)
-            self.headsign = await Translation.get(db, self._trip.trip_headsign)
+            if self._trip.trip_headsign != "":
+                self.headsign = await Translation.get(db, self._trip.trip_headsign)
         else:
             # if we don't have a trip (for example if the GTFS feed is broken)
             # try using destination_id from the realtime data
@@ -127,6 +128,7 @@ async def get_stop_info(db_session, stop_code):
             "address": await get_translated_address(db_session, stop),
             "location": {"lat": stop.stop_lat,
                          "lon": stop.stop_lon}}
+
 
 @cached_no_db(ttl=30*MINUTES)
 async def get_routes(db, operator_id, route_name):
