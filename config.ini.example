@@ -1,6 +1,7 @@
 [mot]
 user_id = user id from MoT
-url = http://siri.motrealtime.co.il:8081/Siri/SiriServices
+#url = http://siri.motrealtime.co.il:8081/Siri/SiriServices
+url = http://localhost:8081/Siri/SiriServices
 [gino]
 dsn = postgresql://username:password@/database
 [app]
