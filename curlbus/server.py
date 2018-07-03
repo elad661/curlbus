@@ -178,8 +178,6 @@ class CurlbusServer(object):
                 return self.ansi_or_html(accept, request, text)
 
             # get realtime ETAs for each stop in this route
-            # this part is commented out until I figure out if it caused MoT
-            # to ban me for excessive requests
             stop_codes = [stop.stop_code for stop in routemap]
             realtime = await client.request(stop_codes)
             etas = {}
