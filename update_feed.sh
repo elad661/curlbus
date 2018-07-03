@@ -22,4 +22,5 @@ psql $POSTGRES_DSN -c "\\copy trips from trips.txt with csv header quote ''"
 echo -n "loading stoptimes:    "
 psql $POSTGRES_DSN -c "\\copy stoptimes from 'stop_times.txt' with csv header"
 popd
+psql $POSTGRES_DSN -c "UPDATE translations SET translation='Jerusalem' WHERE trans_id='ירושלים' AND lang='EN';"
 rm -fr "$TEMP_DIR"
