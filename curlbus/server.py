@@ -42,7 +42,7 @@ def parse_accept_header(request):
     # This doesn't care for priorities, it'll take the first guess
     accept = request.headers.getall('ACCEPT', [])
     for item in accept:
-        for sub_item in item.split(','):
+        for sub_item in item.lower().split(','):
             if "text/html" in sub_item:
                 return 'html'
             if "application/json" in sub_item:
