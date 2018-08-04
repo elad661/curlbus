@@ -233,7 +233,7 @@ async def get_nearby_stops(db, lat: float, lon: float, radius: int):
     radius_in_km = radius/1000
     latlon = (lat, lon)
 
-    # Build the bounding box
+    # Build the (square) bounding box
     distance = geopy.distance.distance()
     north = distance.destination(latlon, 0, radius_in_km).latitude
     east = distance.destination(latlon, 90, radius_in_km).longitude
@@ -252,10 +252,12 @@ async def get_nearby_stops(db, lat: float, lon: float, radius: int):
     ret = []
     for stop in stops:
         dist = geopy.distance.distance(latlon, (stop.stop_lat, stop.stop_lon)).meters
+        # Narrow down the returned list into a circular radius
         if dist <= radius:
             name = await Translation.get(db, stop.stop_name)
             ret.append({"code": stop.stop_code,
                         "name": name,
+                        "distance": dist,
                         "location": {"lat": stop.stop_lat,
                                      "lon": stop.stop_lon}})
 
