@@ -109,9 +109,7 @@ class CurlbusServer(object):
         if cached is not None:
             response = cached["response"]
             stop_info = cached["stop_info"]
-            print(f"HIT")
         else:
-            print("MISS")
             # Cache miss or too old
             stop_info = await get_stop_info(request['connection'], stop_code)
             if stop_info is None:
@@ -121,12 +119,13 @@ class CurlbusServer(object):
             for _, visits in response.visits.items():
                 for arrival in visits:
                     gtfsinfo = await get_arrival_gtfs_info(arrival, request['connection'])
-                    arrival.static_info = {"stop_info": stop_info,
-                                           "route": gtfsinfo}
+                    arrival.static_info = {"route": gtfsinfo}
             await cache.set(cache_key, {"response": response,
                                         "stop_info": stop_info}, ttl=CACHE_TTL)
         if accept == 'json':
-            return web.json_response(response.to_dict())
+            out = response.to_dict()
+            out['stop_info'] = stop_info
+            return web.json_response(out)
         else:
             text = render_station_arrivals(stop_info, response)
             return self.ansi_or_html(accept, request, text)
