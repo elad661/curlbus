@@ -257,7 +257,7 @@ async def get_nearby_stops(db, lat: float, lon: float, radius: int):
             name = await Translation.get(db, stop.stop_name)
             ret.append({"code": stop.stop_code,
                         "name": name,
-                        "distance": dist,
+                        "distance": round(dist, 2),
                         "location": {"lat": stop.stop_lat,
                                      "lon": stop.stop_lon}})
 
