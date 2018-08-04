@@ -22,7 +22,9 @@ from gino.ext.aiohttp import Gino
 from .operators import operators, operators_by_id, operator_names, operator_logos
 from .render import render_station_arrivals, render_operator_index, render_route_alternatives, render_route_map, render_station_list
 from .siri import SIRIClient
-from .gtfs.utils import get_stop_info, get_routes, get_route_route, get_arrival_gtfs_info, translate_route_name, count_routes, get_rail_stations
+from .gtfs.utils import (get_stop_info, get_routes, get_route_route,
+                         get_arrival_gtfs_info, translate_route_name,
+                         count_routes, get_rail_stations, get_nearby_stops)
 from .gtfs import model as gtfs_model
 from .html import html_template, relative_linkify
 from aiocache import SimpleMemoryCache
@@ -68,6 +70,7 @@ class CurlbusServer(object):
         app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static"))
         app.add_routes([web.get('/{stop_code:\d+}{tail:/*}', self.handle_station),
                         web.get('/operators{tail:/*}', self.handle_operator_index),
+                        web.get('/nearby', self.handle_nearby),
                         web.get('/{operator:\w+}{tail:/*}', self.handle_operator),
                         web.get('/rail/stations{tail:/*}', self.handle_rail_stations),
                         web.get('/rail/map{tail:/*}', self.handle_rail_map),
@@ -253,6 +256,27 @@ class CurlbusServer(object):
             ret.append(f"{operator_name} has no routes :(")
         text = "\n".join(ret)+"\n"
         return self.ansi_or_html(accept, request, text)
+
+    async def handle_nearby(self, request):
+        """ Get nearby stops """
+        db = request['connection']
+        try:
+            # Rounding lat and lon to 6 decimal digits to avoid cache bloat
+            lat = round(float(request.query['lat']), 6)
+            lon = round(float(request.query['lon']), 6)
+        except KeyError:
+            return web.Response(text="missing lat and lon", status=400)
+        try:
+            radius = int(request.query['radius'])
+            # 5 meters, 10 meters, 50 meters, up to 1000 in 50m increments
+            allowed_radii = [5, 10, *range(50, 1050, 50)]
+            if radius not in allowed_radii:
+                return web.Response(text=f"Radius not allowed, try one of {allowed_radii}",
+                                    status=400)
+        except KeyError:
+            radius = 300
+
+        return web.json_response(await get_nearby_stops(db, lat, lon, radius))
 
     async def handle_rail_stations(self, request):
         db = request['connection']

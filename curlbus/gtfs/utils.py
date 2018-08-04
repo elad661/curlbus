@@ -15,6 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+from typing import List
+import geopy.distance
 from aiocache import cached
 from sqlalchemy import func, select
 from .model import Trip, Route, Stop, Agency, Translation, City
@@ -221,4 +223,40 @@ async def get_rail_stations(db):
                 name['EN'] = city_name.english_name
         ret.append({"code": stop_code,
                     "name": name})
+    return ret
+
+
+@cached_no_db(ttl=60*MINUTES)
+async def get_nearby_stops(db, lat: float, lon: float, radius: int):
+    """ Get stops in the specified radius (in meters) """
+
+    radius_in_km = radius/1000
+    latlon = (lat, lon)
+
+    # Build the bounding box
+    distance = geopy.distance.distance()
+    north = distance.destination(latlon, 0, radius_in_km).latitude
+    east = distance.destination(latlon, 90, radius_in_km).longitude
+    south = distance.destination(latlon, 180, radius_in_km).latitude
+    west = distance.destination(latlon, -90, radius_in_km).longitude
+
+    # Get a list of stops
+
+    stops = await db.all(Stop.query.
+                         where(Stop.stop_lon < east).
+                         where(Stop.stop_lon > west).
+                         where(Stop.stop_lat < north).
+                         where(Stop.stop_lat > south))
+    # the gino way to do sql AND is ugly :(
+
+    ret = []
+    for stop in stops:
+        dist = geopy.distance.distance(latlon, (stop.stop_lat, stop.stop_lon)).meters
+        if dist <= radius:
+            name = await Translation.get(db, stop.stop_name)
+            ret.append({"code": stop.stop_code,
+                        "name": name,
+                        "location": {"lat": stop.stop_lat,
+                                     "lon": stop.stop_lon}})
+
     return ret
