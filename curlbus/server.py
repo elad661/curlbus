@@ -260,13 +260,19 @@ class CurlbusServer(object):
         """ Get nearby stops """
         db = request['connection']
         try:
-            # Rounding lat and lon to 6 decimal digits to avoid cache bloat
-            lat = round(float(request.query['lat']), 6)
-            lon = round(float(request.query['lon']), 6)
+            # Rounding lat and lon to 5 decimal digits to avoid cache bloat
+            lat = round(float(request.query['lat']), 5)
+            lon = round(float(request.query['lon']), 5)
         except KeyError:
             return web.Response(text="missing lat and lon", status=400)
+        except ValueError:
+            return web.Response(text="lat or lon are in the wrong format", status=400)
         try:
-            radius = int(request.query['radius'])
+            try:
+                radius = int(request.query['radius'])
+            except ValueError:
+                return web.Response(text=f"Radius must be a number",
+                                    status=400)
             # 5 meters, 10 meters, 50 meters, up to 1000 in 50m increments
             allowed_radii = [5, 10, *range(50, 1050, 50)]
             if radius not in allowed_radii:
