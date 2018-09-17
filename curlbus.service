@@ -1,0 +1,17 @@
+[Unit]
+Description=curlbus server
+After=network.target
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=curlbus
+ExecStart=/usr/bin/python3 /home/curlbus/curlbus/main.py
+WorkingDirectory=/home/curlbus/curlbus
+Restart=on-failure
+RestartSec=30
+Environment=LC_ALL=en_US.UTF-8
+
+[Install]
+WantedBy=multi-user.target
+
