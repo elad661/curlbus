@@ -49,15 +49,21 @@ means you have to have a static IP. Not great for cloud deployments.
 
 After you have API access (if you haven't given up on this stage), install the required dependencies:
 
-`pip3 --user -f requirements.txt`
+`pip3 install --user -f requirements.txt`
 
-And edit config.ini.example to fill in the required values.
+And edit config.ini.example to fill in the required values. Remeber to point it to the MoT server if you have API access.
 
 You'll need Postgresql for the GTFS database. Other databases are not supported.
 
-The GTFS feed updates nightly, so you'll need to set up a cron job to call `./update_feed.sh`.
+You need to use `./update_feed.sh` to load the GTFS database, and `./load_cities.py` to download the city name database.
 
-It's also a good idea to occasionally run `./load_cities.py` to download the city name database.
+The GTFS feed updates nightly, but `update_feed.sh` currently can only load it into an empty database. For now, the way to do updates is manual (once a week or so):
+
+Change the configuration file to point to a different postgres database (I've been using two databases, "gtfs" and "gtfs2". when "gtfs2" is active I switch to "gtfs" and vise-versa), connect to it and make sure to drop all tables, then run `./update_feed.sh` and `./load_cities.py`. Afte they're done, restart the service. Doing it this way ensures the update is atomic and there are no inconsistencies while the update is running, and allows you to roll back in case of a problematic update (by just changing the config file back to the previous database).
+
+I don't particularly like this process being manual, but I didn't have time to automate it.
+
+Note that the GTFS feed can be quite big (more than 2GB of csv files), and loading it into your database can take a while, so be patient and make sure to have plenty of free disk space.
 
 ## Development Server
 
