@@ -49,7 +49,7 @@ means you have to have a static IP. Not great for cloud deployments.
 
 After you have API access (if you haven't given up on this stage), install the required dependencies:
 
-`pip3 install --user -f requirements.txt`
+`pip3 install --user -r requirements.txt`
 
 And edit config.ini.example to fill in the required values. Remeber to point it to the MoT server if you have API access.
 
