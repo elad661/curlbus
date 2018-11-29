@@ -83,8 +83,7 @@ version: '3.1'
 services:
   curlbus:
     container_name: curlbus
-    build:
-      guysoft/curlbus
+    image:  guysoft/curlbus
     volumes:
       - ./config.ini:/curlbus/config.ini:ro
     tty: true
