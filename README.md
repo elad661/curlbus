@@ -99,6 +99,11 @@ services:
     environment:
       POSTGRES_PASSWORD: example
       POSTGRES_DB: curlbus
+    volumes:
+      - curlbus-data:/var/lib/postgresql/data
+
+volumes:
+  curlbus-data:
 ```
 2. 
 ```
