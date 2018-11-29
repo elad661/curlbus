@@ -40,5 +40,5 @@ RUN pip3 install -r requirements.txt
 RUN pip3 install msgpack
 
 COPY . /curlbus
-CMD ["/bin/bash"]
+CMD ["/curlbus/main.py","-c","/curlbus/config.ini"]
 
