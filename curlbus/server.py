@@ -306,7 +306,7 @@ class CurlbusServer(object):
     async def handle_index(self, request):
         ret = []
         logo = os.path.join(os.path.dirname(__file__), "curlbus.txt")
-        with open(logo, "r") as f:
+        with open(logo, "r", encoding="utf-8") as f:
             logo = f.read()
         for line in logo.splitlines():
             ret.append(line + ANSI_RESET)
