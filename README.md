@@ -75,7 +75,7 @@ stop on the requested stop according to the GTFS database. Make sure to run `upd
 
 
 ## Deploy with Docker
-1. Create a file docker-comppose.yml:
+1. Create a file ``docker-compose.yml``:
 
 ```
 version: '3.1'
