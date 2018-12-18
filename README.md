@@ -107,9 +107,9 @@ volumes:
 ```
 2. 
 ```
-wget https://raw.githubusercontent.com/guysoft/curlbus/master/config.ini.docker -O config.ini
+wget https://raw.githubusercontent.com/elad661/curlbus/master/config.ini.docker -O config.ini
 ```
-3. Edit config.ini to include your SERI username.
+3. Edit config.ini to include your SIRI username.
 
 4. 
 ```
