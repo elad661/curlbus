@@ -68,7 +68,7 @@ class CurlbusServer(object):
                                        config["mot"]["user_id"])
         db.init_app(app)
         app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static"))
-        app.add_routes([web.get('/0*{stop_code:\d+}{tail:/*}', self.handle_station),
+        app.add_routes([web.get('/{stop_code:\d+}{tail:/*}', self.handle_station),
                         web.get('/operators{tail:/*}', self.handle_operator_index),
                         web.get('/nearby', self.handle_nearby),
                         web.get('/{operator:\w+}{tail:/*}', self.handle_operator),
