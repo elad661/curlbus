@@ -34,9 +34,10 @@ var TerminalShell = {
             if (this.commands[cmd] === undefined) {
                 // Seriously? we need regex just to replace all spaces? WTF!
                 cmd = cmd.replace(new RegExp(" ", 'g'), "/");
+                var server = window.location.protocol + "//" + window.location.host + '/';
 
-                terminal.print('curl https://cursbus.app/' + cmd);
-                fetch('https://curlbus.app/' + cmd,
+                terminal.print('curl ' + server + cmd);
+                fetch(server + cmd,
                 {
                     headers: {'Accept': 'text/plain'    },
                 }).then(function(response) {
