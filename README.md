@@ -72,3 +72,56 @@ it still requires PostgreSQL.
 
 `mock_siri_server.py` will make up random arrival times for random routes when queried, but all the routes would be valid ones that actually
 stop on the requested stop according to the GTFS database. Make sure to run `update_feed.sh` before running the mock server.
+
+
+## Deploy with Docker
+1. Create a file ``docker-compose.yml``:
+
+```
+version: '3.1'
+  
+services:
+  curlbus:
+    container_name: curlbus
+    image:  guysoft/curlbus
+    volumes:
+      - ./config.ini:/curlbus/config.ini:ro
+    tty: true
+    links:
+      - "db:postgres"
+    ports:
+      - 8080:80
+
+  db:
+    image: postgres
+    restart: always
+    container_name: curlbus-db
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: curlbus
+    volumes:
+      - curlbus-data:/var/lib/postgresql/data
+
+volumes:
+  curlbus-data:
+```
+2. 
+```
+wget https://raw.githubusercontent.com/elad661/curlbus/master/config.ini.docker -O config.ini
+```
+3. Edit config.ini to include your SIRI username.
+
+4. 
+```
+sudo docker-compose up -d
+sudo docker exec -it curlbus /curlbus/update_feed.sh
+sudo docker exec -it curlbus /curlbus/load_cities.py -c /curlbus/config.ini
+```
+
+5. 
+
+```
+sudo docker exec -it curlbus /curlbus/main.py -c /curlbus/config.ini
+```
+
+6. Your curlbus server is avilable at port 8080

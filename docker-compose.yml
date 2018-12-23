@@ -1,0 +1,30 @@
+version: '3.1'
+
+services:
+  curlbus:
+    container_name: curlbus
+    build:
+      context: .
+    volumes:
+      #- ./:/curlbus
+      - ./config.ini:/curlbus/config.ini:ro
+    tty: true
+    links:
+      - "db:postgres"
+    #ports:
+    #  - 8081:80
+
+  db:
+    image: postgres
+    restart: always
+    container_name: curlbus-db
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB: curlbus
+
+  #adminer:
+    #image: adminer
+    #restart: always
+    #ports:
+      #- 8080:8080
+
