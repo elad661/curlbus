@@ -90,22 +90,29 @@ class SIRIResponse(object):
 
         # ew.
         try:
-            answer = xmldict['S:Envelope']['S:Body']['ns7:GetStopMonitoringServiceResponse']['Answer']
+            response = xmldict['S:Envelope']['S:Body']['ns7:GetStopMonitoringServiceResponse']
         except KeyError:
             print(json.dumps(xmldict, indent=2))
             print(self.raw_response)
             raise
 
-        self.timestamp = answer['ns3:ResponseTimestamp']
+        # find SIRI namespace
+        siri_namespace = "ns3"  # default to something that works most of the time
+        for key in response.keys():
+          if key.startswith('@xmlns:') and response[key] == 'http://www.siri.org.uk/siri':
+            siri_namespace = key.replace('@xmlns:', '') + ':'
+        answer = response['Answer']
+
+        self.timestamp = answer[siri_namespace + 'ResponseTimestamp']
         """ Timestamp of the response from the server """
 
-        for delivery in _listify(answer['ns3:StopMonitoringDelivery']):
-            if delivery['ns3:Status'] != "true":
+        for delivery in _listify(answer[siri_namespace + 'StopMonitoringDelivery']):
+            if delivery[siri_namespace + 'Status'] != "true":
                 # TODO actually log errors!
-                self.errors.append(delivery['ns3:ErrorCondition']['ns3:Description'])
+                self.errors.append(delivery[siri_namespace + 'ErrorCondition'][siri_namespace + 'Description'])
             else:
-                for visit in _listify(delivery['ns3:MonitoredStopVisit']):
-                    stop_visit = SIRIStopVisit(visit)
+                for visit in _listify(delivery[siri_namespace + 'MonitoredStopVisit']):
+                    stop_visit = SIRIStopVisit(visit, siri_namespace)
                     self.visits[stop_visit.stop_code].append(stop_visit)
 
     def to_dict(self) -> dict:
@@ -210,35 +217,35 @@ class SIRIClient(object):
 
 
 class SIRIStopVisit(object):
-    def __init__(self, src):
+    def __init__(self, src, siri_namespace):
         self._src = src
-        self.timestamp = dateutil.parser.parse(src['ns3:RecordedAtTime'])
+        self.timestamp = dateutil.parser.parse(src[siri_namespace + 'RecordedAtTime'])
         """  RecordedAtTime from the SIRI response, ie. the timestamp in which the prediction was made """
 
-        self.stop_code = src['ns3:MonitoringRef']
+        self.stop_code = src[siri_namespace + 'MonitoringRef']
         """ The stop code for this stop visit """
 
-        journey = src['ns3:MonitoredVehicleJourney']
-        self.line_id = journey['ns3:LineRef']
+        journey = src[siri_namespace + 'MonitoredVehicleJourney']
+        self.line_id = journey[siri_namespace + 'LineRef']
         """ Matches the route_id from the GTFS file """
 
         self.route_id = self.line_id
         """ line ref or line id is SIRI terminology, route_id is GTFS terminology. We support both. route_id is identical to line_id """
 
-        self.direction_id = journey['ns3:DirectionRef']
+        self.direction_id = journey[siri_namespace + 'DirectionRef']
         """ Direction code for this trip """
 
-        self.line_name = journey['ns3:PublishedLineName']
+        self.line_name = journey[siri_namespace + 'PublishedLineName']
         """ PublishedLineName. The meaning of this number is unclear for Israel Railways data """
 
-        self.operator_id = journey['ns3:OperatorRef']
+        self.operator_id = journey[siri_namespace + 'OperatorRef']
         """ oprator / agency ID of this route. """
 
-        self.destination_id = journey['ns3:DestinationRef']
+        self.destination_id = journey[siri_namespace + 'DestinationRef']
         """ The stop code of this trip's destination """
 
         try:
-            vehicle_ref = journey['ns3:VehicleRef']
+            vehicle_ref = journey[siri_namespace + 'VehicleRef']
         except KeyError:
             vehicle_ref = None
         self.vehicle_ref = vehicle_ref
@@ -246,19 +253,19 @@ class SIRIStopVisit(object):
 
         # Assuming singular MonitoredCall object.
         # we need to change that assumption if we use the "onward calls" feature of version 2.8, which was not released yet
-        call = journey['ns3:MonitoredCall']
-        self.eta = dateutil.parser.parse(call['ns3:ExpectedArrivalTime'])
+        call = journey[siri_namespace + 'MonitoredCall']
+        self.eta = dateutil.parser.parse(call[siri_namespace + 'ExpectedArrivalTime'])
         """ Estimated time for arrival """
 
         # Convert SIRI - style trip ID to GTFS style, to make it useful
 
-        if 'ns3:FramedVehicleJourneyRef' in journey:
-            journey_ref = journey['ns3:FramedVehicleJourneyRef']
+        if siri_namespace + 'FramedVehicleJourneyRef' in journey:
+            journey_ref = journey[siri_namespace + 'FramedVehicleJourneyRef']
 
-            tripdate = dateutil.parser.parse(journey_ref['ns3:DataFrameRef'])
+            tripdate = dateutil.parser.parse(journey_ref[siri_namespace + 'DataFrameRef'])
             tripdate = tripdate.strftime('%d%m%y')
 
-            trip_id_part = journey_ref['ns3:DatedVehicleJourneyRef']
+            trip_id_part = journey_ref[siri_namespace + 'DatedVehicleJourneyRef']
 
             trip_id = f"{trip_id_part}_{tripdate}"
         else:
@@ -267,7 +274,7 @@ class SIRIStopVisit(object):
         """ Trip ID, unique identifier of this trip per day """
 
         try:
-            status = call['ns3:ArrivalStatus']
+            status = call[siri_namespace + 'ArrivalStatus']
         except KeyError:
             status = None
         self.status = status
@@ -276,16 +283,16 @@ class SIRIStopVisit(object):
         self.departed = None
         """ The aimed departure time from the origin station. In some edge case, this is slightly different then the GTFS schedule """
 
-        if 'ns3:AimedDepartureTime' in call:
-            self.departed = dateutil.parser.parse(call['ns3:AimedDepartureTime'])
-        elif 'ns3:OriginAimedDepartureTime' in journey:
-            self.departed = dateutil.parser.parse(journey['ns3:OriginAimedDepartureTime'])
+        if siri_namespace + 'AimedDepartureTime' in call:
+            self.departed = dateutil.parser.parse(call[siri_namespace + 'AimedDepartureTime'])
+        elif siri_namespace + 'OriginAimedDepartureTime' in journey:
+            self.departed = dateutil.parser.parse(journey[siri_namespace + 'OriginAimedDepartureTime'])
         else:
             self.departed = None
 
-        if "ns3:VehicleLocation" in journey:
-            self.location = {'lat': journey["ns3:VehicleLocation"]["ns3:Latitude"],
-                             'lon': journey["ns3:VehicleLocation"]["ns3:Longitude"]}
+        if siri_namespace + "VehicleLocation" in journey:
+            self.location = {'lat': journey[siri_namespace + "VehicleLocation"][siri_namespace + "Latitude"],
+                             'lon': journey[siri_namespace + "VehicleLocation"][siri_namespace + "Longitude"]}
         else:
             self.location = None
 
