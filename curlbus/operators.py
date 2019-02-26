@@ -65,10 +65,10 @@ operator_names = {2: "Israel Railways",
                   47: "Jerusalem - Mount Olives",
                   49: "Jerusalem - Isawiya and Shuafat",
                   50: "Jerusalem - South",
-                  51: "Jerusalem - Sur Baher"
+                  51: "Jerusalem - Sur Baher",
                   # Sherut taxis:
                   104: "Sherut: Rav-Kavit 4-5",
-                  130: "Sherut: Hadar-Lod"
+                  130: "Sherut: Hadar-Lod",
                   }
 """ Translating operator names to English, as this is missing from the
 official translation table """
