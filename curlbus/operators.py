@@ -29,7 +29,11 @@ operators = {'rail': 2,
              'jlm_mountolives': 47,
              'jlm_isawiya': 49,
              'jlm_south': 50,
-             'jlm_sur_baher': 51}
+             'jlm_sur_baher': 51,
+             # Sherut taxis
+             'sheurt_4_5': 104,
+             'sherut_hadar_lod': 130,
+            }
 """mapping URL slugs for operator IDs. This has to be done because the original
 name in the GTFS agency.txt is in Hebrew, and that wouldn't be nice in a URL"""
 
@@ -62,6 +66,9 @@ operator_names = {2: "Israel Railways",
                   49: "Jerusalem - Isawiya and Shuafat",
                   50: "Jerusalem - South",
                   51: "Jerusalem - Sur Baher"
+                  # Sherut taxis:
+                  104: "Sherut: Rav-Kavit 4-5",
+                  130: "Sherut: Hadar-Lod"
                   }
 """ Translating operator names to English, as this is missing from the
 official translation table """
