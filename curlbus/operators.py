@@ -31,7 +31,8 @@ operators = {'rail': 2,
              'jlm_south': 50,
              'jlm_sur_baher': 51,
              # Sherut taxis
-             'sheurt_4_5': 104,
+             'sherut_hai': 97,
+             'sherut_4_5': 98,
              'sherut_hadar_lod': 130,
             }
 """mapping URL slugs for operator IDs. This has to be done because the original
@@ -67,7 +68,8 @@ operator_names = {2: "Israel Railways",
                   50: "Jerusalem - South",
                   51: "Jerusalem - Sur Baher",
                   # Sherut taxis:
-                  104: "Sherut: Rav-Kavit 4-5",
+                  97: "Sherut: Hai",
+                  98: "Sherut: Rav-Kavit 4-5",
                   130: "Sherut: Hadar-Lod",
                   }
 """ Translating operator names to English, as this is missing from the
