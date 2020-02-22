@@ -76,19 +76,19 @@ async def main():
         print(f"Total expected: {total}")
         cities = []
         while processed < total:
-          for row in data['result']['records']:
-              hebrew_name = flip_brackets(row['שם_ישוב'].strip())
-              english_name = row['שם_ישוב_לועזי'].strip().title()
-              if english_name:
-                  cities.append({'name': hebrew_name, 'english_name': english_name})
-              else:
-                  missing.append(hebrew_name)
-              processed += 1
-          next = data['result']['_links']['next']
-          if processed < total:
-            print(f'Have so far: {len(cities)} / {total}')
-            response = await session.get(DATASET_BASE_URL + next, headers=headers)
-            data = await response.json()
+            for row in data['result']['records']:
+                hebrew_name = flip_brackets(row['שם_ישוב'].strip())
+                english_name = row['שם_ישוב_לועזי'].strip().title()
+                if english_name:
+                    cities.append({'name': hebrew_name, 'english_name': english_name})
+                else:
+                    missing.append(hebrew_name)
+                processed += 1
+            next = data['result']['_links']['next']
+            if processed < total:
+                print(f'Have so far: {len(cities)} / {total}')
+                response = await session.get(DATASET_BASE_URL + next, headers=headers)
+                data = await response.json()
 
         total_saved = len(cities)
         print(f"Total saved: {total_saved} out of {processed}")

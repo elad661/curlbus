@@ -15,7 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
-from typing import List
 import geopy.distance
 from aiocache import cached
 from sqlalchemy import func, select
@@ -33,13 +32,13 @@ class cached_no_db(cached):
 
 
 @cached_no_db(ttl=30*MINUTES)
-async def translate_city_name(db, city):
+async def translate_city_name(db, city, lang='EN'):
     ret = None
     # Prefer the official GTFS translation database
     city_translation = await Translation.get(db, city)
-    if 'EN' in city_translation:
-        ret = city_translation['EN']
-    else:
+    if lang in city_translation:
+        ret = city_translation[lang]
+    elif lang == 'EN':
         # Fall back to the government city database
         city = await db.first(City.query.where(City.name == city))
         if city is not None and city != "":
@@ -51,9 +50,16 @@ async def translate_city_name(db, city):
 async def get_translated_address(db, stop):
     """ Translates the 'city' value in a stop's address, if possible """
     address = stop.address
+    address['city_multilingual'] = {
+        'HE': address['city']
+    }
     translation = await translate_city_name(db, stop.address['city'])
     if translation is not None:
         address['city'] = translation
+        address['city_multilingual']['EN'] = translation
+    ar_translation = await translate_city_name(db, stop.address['city'], 'AR')
+    if ar_translation:
+        address['city_multilingual']['AR'] = translation
     return address
 
 
