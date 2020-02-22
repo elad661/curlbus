@@ -46,8 +46,8 @@ Israel Railways Network Map
   HaHagana ┿━┿━┿━┿━┿━┿━┿
            │ │ │ │ │ │ │          Airport                          Modi'in
          ╭─╯ ╰╮╰╮╰╮╰╮│ ╰──────────*──────────────*─────────────────@
-         │    | | | |╰────────────*╮             Modi'in Outskirts
-         │    ╰╮╰╮╰╮╰╮             ╰──────────────────────────────────────────@ Jlm Center
+         │    | | | |╰────────────*╮             Modi'in Outskirts          Jlm
+         │    ╰╮╰╮╰╮╰╮             ╰────────────────────────────────────────@
  Holon J *     │ │ │ ╰──────────╮
          │     │ │ ╰──────────╮ │
          │     │ ╰──────────╮ │ │
@@ -57,7 +57,7 @@ Bat Yam Y*                * │ │ * Lod G.Aviv
          │                │ │ │ │
   Rishon *              ┯━┿━┿━┿━┿ Lod
          │ Rishonim @───╯ │ │ │ │
-         │      B. Yaakov * │ │ │                                Jlm Zoo  Jlm Malha
+         │      B. Yaakov * │ │ │                                Jlm Zoo  Malha
          │                │ * │ * Ramle           ┌──────────────*────────@
          │              ╭─╯ │ │ ╰─────────────────@ B. Shemesh
          │      Rehovot *   │ │
