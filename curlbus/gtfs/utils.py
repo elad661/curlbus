@@ -116,7 +116,7 @@ async def get_arrival_gtfs_info(arrival, db):
                 "headsign": headsign}
 
 
-@cached_no_db(ttl=15*MINUTES)
+@cached_no_db(ttl=30*MINUTES)
 async def get_stop_info(db_session, stop_code):
     query = Stop.query.where(Stop.stop_code == stop_code).limit(1)
     query.bind = db_session

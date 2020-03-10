@@ -28,7 +28,7 @@ from itertools import zip_longest
 from datetime import datetime
 from typing import List
 from textwrap import dedent
-GROUP_SIZE = 10
+GROUP_SIZE = 25
 
 _SIRI_REQUEST_TEMPLATE = dedent('''
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:acsb="http://www.ifopt.org.uk/acsb" xmlns:datex2="http://datex2.eu/schema/1_0/1_0" xmlns:ifopt="http://www.ifopt.org.uk/ifopt" xmlns:siri="http://www.siri.org.uk/siri" xmlns:siriWS="http://new.webservice.namespace" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="./siri">
@@ -149,8 +149,8 @@ class CachedSIRIResponse(SIRIResponse):
 
 class SIRIClient(object):
     """ SIRI-SM client using aiohttp """
-    def __init__(self, url: str, user_id: str, cache: BaseCache=None,
-                 cache_ttl: int=60, verbose: bool=False):
+    def __init__(self, url: str, user_id: str, cache: BaseCache = None,
+                 cache_ttl: int = 30, verbose: bool = False):
         self.url = url
         self.user_id = user_id
         self.verbose = verbose
@@ -171,7 +171,7 @@ class SIRIClient(object):
                                              numeric_timstamp=numeric_timstamp,
                                              body=body)
 
-    async def request(self, stop_codes: List[str], max_visits: int=50) -> SIRIResponse:
+    async def request(self, stop_codes: List[str], max_visits: int = 50) -> SIRIResponse:
         """ Request real time information for stops in `stop_codes` """
         # Look for stop_codes in cache
         to_request = []
@@ -192,8 +192,8 @@ class SIRIClient(object):
             for group in _grouper(to_request, GROUP_SIZE):
                 group = list(filter(None, group))
                 body = self._prepare_request_body(group, max_visits)
-                async with session.post(self.url, data=body, headers=headers) as response:
-                    text = await response.text()
+                async with session.post(self.url, data=body, headers=headers) as raw_response:
+                    text = await raw_response.text()
                     response = SIRIResponse(text, group, self.verbose)
                     if ret:
                         # Merge SIRIResponse objects if we have more than
@@ -203,7 +203,6 @@ class SIRIClient(object):
                         ret.append(response)
                     else:
                         ret = response
-        print(f"From cache: {len(from_cache)} stops")
         if ret is not None:
             # cache new visits
             for stop_code, visits in ret.visits.items():
@@ -249,7 +248,8 @@ class SIRIStopVisit(object):
         except KeyError:
             vehicle_ref = None
         self.vehicle_ref = vehicle_ref
-        """ In case of Israel Railways, this is the train number and is guranteed to be unique per day """
+        """ In case of Israel Railways, this is the train number and is guranteed to be unique per day
+        For buses, this is either the license plate number, or the internal vehicle number """
 
         # Assuming singular MonitoredCall object.
         # we need to change that assumption if we use the "onward calls" feature of version 2.8, which was not released yet

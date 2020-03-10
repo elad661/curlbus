@@ -33,7 +33,7 @@ import ansi2html
 # monkey-patch ansi2html to get a more modern HTML document structure and a footer
 ansi2html.converter._html_template = html_template
 ansi2html.converter.linkify = relative_linkify
-CACHE_TTL = 60
+CACHE_TTL = 30
 ANSI_RESET = "\033[0m\033[39m\033[49m"
 
 
@@ -68,7 +68,7 @@ class CurlbusServer(object):
                                        config["mot"]["user_id"])
         db.init_app(app)
         app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static"))
-        app.add_routes([web.get('/{prefix:0*}{stop_code:\d+}{tail:/*}', self.handle_station),
+        app.add_routes([web.get('/{prefix:0*}{stop_code:\d+(\+\d+)*}{tail:/*}', self.handle_station),
                         web.get('/operators{tail:/*}', self.handle_operator_index),
                         web.get('/nearby', self.handle_nearby),
                         web.get('/{operator:\w+}{tail:/*}', self.handle_operator),
@@ -93,41 +93,60 @@ class CurlbusServer(object):
 
     async def handle_station(self, request):
         """ Get real-time arrivals for a specific station """
-        stop_code = request.match_info["stop_code"]
-        cache = request.app["aiocache"]
+        db = request['connection']
+        stop_codes = request.match_info["stop_code"].split('+')
         # TODO bunching to limit request rate?
         # TODO IP-based rate limit?
         # all these are because this is the interface of the user to the MoT
         # API and I do not want to get banned from the MoT API
-        client = request.app['siriclient']
+        client: SIRIClient = request.app['siriclient']
 
         accept = parse_accept_header(request)
 
-        cache_key = f"stop:{stop_code}"
-        cached = await cache.get(cache_key)
-        response = None
-        if cached is not None:
-            response = cached["response"]
-            stop_info = cached["stop_info"]
-        else:
-            # Cache miss or too old
-            stop_info = await get_stop_info(request['connection'], stop_code)
+        if len(stop_codes) > 30:
+            if accept == 'json':
+                return web.json_response({"errors": ['Maximum 30 stops per request, please']}, status=400)
+            else:
+                return web.Response(text='Maximum 30 stops per request, please',
+                                    status=400)
+
+        stops = {}
+        errors = []
+        for stop_code in stop_codes:
+            # collect info for the stops not in cache
+            stop_info = await get_stop_info(db, stop_code)
             if stop_info is None:
-                return web.Response(text="Invalid stop code\n",
+                # errors are batched, instead of returning the first one
+                errors.append(f"Invalid stop code {stop_code}\n")
+            stops[stop_code] = stop_info
+
+        if errors:
+            if accept == 'json':
+                return web.json_response({"errors": errors})
+            else:
+                return web.Response(text='\n'.join(errors),
                                     status=404)
-            response = await client.request([stop_code])
-            for _, visits in response.visits.items():
-                for arrival in visits:
-                    gtfsinfo = await get_arrival_gtfs_info(arrival, request['connection'])
-                    arrival.static_info = {"route": gtfsinfo}
-            await cache.set(cache_key, {"response": response,
-                                        "stop_info": stop_info}, ttl=CACHE_TTL)
+
+        siri_response = await client.request(stop_codes)
+        for _, visits in siri_response.visits.items():
+            for arrival in visits:
+                gtfsinfo = await get_arrival_gtfs_info(arrival, db)
+                arrival.static_info = {"route": gtfsinfo}
+
+        # iterate over stop_codes again, to output the result in the user-requested order
+
         if accept == 'json':
-            out = response.to_dict()
-            out['stop_info'] = stop_info
+            out = siri_response.to_dict()
+            if len(stop_codes) == 1:
+                # backwards compatibility: stop_info as a single item
+                out['stop_info'] = stop_info
+            else:
+                out['stops_info'] = {stop_code: stops[stop_code] for stop_code in stop_codes}
             return web.json_response(out)
         else:
-            text = render_station_arrivals(stop_info, response)
+            text = ""
+            for stop_code in stop_codes:
+                text += render_station_arrivals(stop_code, stops[stop_code], siri_response)
             return self.ansi_or_html(accept, request, text)
 
     async def handle_operator_index(self, request):

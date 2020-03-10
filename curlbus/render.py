@@ -93,81 +93,80 @@ def boxify(lines, side_margins=5, padding=2):
     return ret
 
 
-def render_station_arrivals(stop_info: dict, data: SIRIResponse) -> str:
+def render_station_arrivals(stop_code: str, stop_info: dict, data: SIRIResponse) -> str:
     ret = ""
     if len(data.errors) > 0:
         for error in data.errors:
             ret += error
             ret += '\n'
-    # Assuming one stop per response
     try:
         stop_name = stop_info['name']['EN']
     except KeyError:
         stop_name = stop_info['name']['HE']
-    for stop_code, arrivals in data.visits.items():
-        header = [f"Stop #{stop_code}",
-                  stop_name]
-        table_rows = []
-        merged_arrivals = {}
-        for arrival in arrivals:
-            operator_name = operator_names[int(arrival.operator_id)]
-            # operator_name = arrival.static_info['route']['agency']['name']['EN']
-            try:
-                destination = arrival.static_info['route']['destination']['name']['EN']
-            except KeyError:
-                destination = arrival.static_info['route']['destination']['name']['HE']
-            except TypeError:
-                destination = "???"
 
-            line_number = arrival.line_name
-            if operator_name == "Israel Railways":
-                # Show "train number" for Israel Railways instead of the meaningless
-                # line number. A train number is unique per day and appears
-                # on the real-time departure boards in train stations
-                line_number = arrival.vehicle_ref
+    arrivals = data.visits[stop_code]
+    header = [f"Stop #{stop_code}", stop_name]
+    table_rows = []
+    merged_arrivals = {}
+    for arrival in arrivals:
+        operator_name = operator_names[int(arrival.operator_id)]
+        # operator_name = arrival.static_info['route']['agency']['name']['EN']
+        try:
+            destination = arrival.static_info['route']['destination']['name']['EN']
+        except KeyError:
+            destination = arrival.static_info['route']['destination']['name']['HE']
+        except TypeError:
+            destination = "???"
 
-            try:
-                city = arrival.static_info['route']['destination']['address']['city']
-            except TypeError:
-                print(arrival.static_info)
-                city = None
-            except KeyError:
-                print(arrival.static_info)
-                city = None
-            # TODO special-casing for Isral railways
-            eta_minutes = round((arrival.eta - datetime.now(dateutil.tz.tzlocal())).total_seconds() / 60)
-            if eta_minutes <= 0:
-                eta_text = "Now"
-            else:
-                eta_text = str(eta_minutes) + "m"
-            if operator_name == "Israel Railways":
-                # since the train number is unique per day, we shouldn't merge
-                # arrivals - otherwise the train number column would become
-                # meaningless
-                key = line_number
-            else:
-                # for all operators except Israel Railways
-                # merged_arrivals is key'd on direction_id + operator_id + route_id + destination name
-                key = f"{arrival.operator_id}{arrival.route_id}{arrival.direction_id}{destination}"
-            if key in merged_arrivals:
-                merged_arrivals[key]["etas"].append(eta_text)
-                if merged_arrivals[key]["lowest_eta"] > eta_minutes:
-                    merged_arrivals[key]["lowest_eta"] = eta_minutes
-            else:
-                merged_arrivals[key] = {"etas": [eta_text],
-                                        "lowest_eta": eta_minutes,
-                                        "line_number": line_number,
-                                        "operator_name": operator_name,
-                                        "destination": destination,
-                                        "city": city}
+        line_number = arrival.line_name
+        if operator_name == "Israel Railways":
+            # Show "train number" for Israel Railways instead of the meaningless
+            # line number. A train number is unique per day and appears
+            # on the real-time departure boards in train stations
+            line_number = arrival.vehicle_ref
 
-        for arrival in sorted(merged_arrivals.values(), key=lambda a: a["lowest_eta"]):
-            etas = ', '.join(arrival["etas"])
-            table_rows.append([arrival["line_number"], arrival["operator_name"], arrival["destination"], etas])
-            if arrival["city"] is not None:
-                table_rows.append(["", "", arrival["city"], ""])
-        if len(table_rows) == 0:
-            table_rows = [["No buses in the next 30 minutes"]]
+        try:
+            city = arrival.static_info['route']['destination']['address']['city']
+        except TypeError:
+            print(arrival.static_info)
+            city = None
+        except KeyError:
+            print(arrival.static_info)
+            city = None
+        # TODO special-casing for Isral railways
+        eta_minutes = round((arrival.eta - datetime.now(dateutil.tz.tzlocal())).total_seconds() / 60)
+        if eta_minutes <= 0:
+            eta_text = "Now"
+        else:
+            eta_text = str(eta_minutes) + "m"
+        if operator_name == "Israel Railways":
+            # since the train number is unique per day, we shouldn't merge
+            # arrivals - otherwise the train number column would become
+            # meaningless
+            key = line_number
+        else:
+            # for all operators except Israel Railways
+            # merged_arrivals is key'd on direction_id + operator_id + route_id + destination name
+            key = f"{arrival.operator_id}{arrival.route_id}{arrival.direction_id}{destination}"
+        if key in merged_arrivals:
+            merged_arrivals[key]["etas"].append(eta_text)
+            if merged_arrivals[key]["lowest_eta"] > eta_minutes:
+                merged_arrivals[key]["lowest_eta"] = eta_minutes
+        else:
+            merged_arrivals[key] = {"etas": [eta_text],
+                                    "lowest_eta": eta_minutes,
+                                    "line_number": line_number,
+                                    "operator_name": operator_name,
+                                    "destination": destination,
+                                    "city": city}
+
+    for arrival in sorted(merged_arrivals.values(), key=lambda a: a["lowest_eta"]):
+        etas = ', '.join(arrival["etas"])
+        table_rows.append([arrival["line_number"], arrival["operator_name"], arrival["destination"], etas])
+        if arrival["city"] is not None:
+            table_rows.append(["", "", arrival["city"], ""])
+    if len(table_rows) == 0:
+        table_rows = [["No buses in the next 30 minutes"]]
 
     return table(header, table_rows)
 
