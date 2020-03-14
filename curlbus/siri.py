@@ -16,6 +16,7 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
+from typing import Dict
 import aiohttp
 import dateutil.parser
 import dateutil.tz
@@ -80,7 +81,7 @@ class SIRIResponse(object):
         if verbose:
             print(json.dumps(xmldict, indent=2))
 
-        self.visits = {}
+        self.visits: Dict[str, SIRIStopVisit] = {}
         """ Stop visits. A dictionary in the form of {stop_code: SIRIStopVisit} """
         self.errors = []
         """ Errors, if any"""

@@ -128,12 +128,19 @@ class CurlbusServer(object):
                                     status=404)
 
         siri_response = await client.request(stop_codes)
-        for _, visits in siri_response.visits.items():
+
+        # filtering, if needed
+        if 'filter' in request.query:
+            line_names = set(request.query['filter'].split(','))
+            for stop_code, visits in siri_response.visits.items():
+                filtered_visits = [visit for visit in visits if visit.line_name in line_names]
+                siri_response.visits[stop_code] = filtered_visits
+
+        # add static GTFS info for each route
+        for stop_code, visits in siri_response.visits.items():
             for arrival in visits:
                 gtfsinfo = await get_arrival_gtfs_info(arrival, db)
                 arrival.static_info = {"route": gtfsinfo}
-
-        # iterate over stop_codes again, to output the result in the user-requested order
 
         if accept == 'json':
             out = siri_response.to_dict()
