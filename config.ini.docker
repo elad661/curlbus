@@ -1,7 +1,6 @@
 [mot]
 user_id = user id from MoT
-url = http://siri.motrealtime.co.il:8081/Siri/SiriServices
-#url = http://localhost:8081/Siri/SiriServices
+url = http://199.203.58.17:110/Channels/HTTPChannel/SmQuery/2.8/xml
 [gino]
 dsn = postgresql://postgres:example@postgres/curlbus
 [app]

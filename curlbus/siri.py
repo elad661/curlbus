@@ -31,31 +31,6 @@ from typing import List
 from textwrap import dedent
 GROUP_SIZE = 25
 
-_SIRI_REQUEST_TEMPLATE = dedent('''
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/" xmlns:acsb="http://www.ifopt.org.uk/acsb" xmlns:datex2="http://datex2.eu/schema/1_0/1_0" xmlns:ifopt="http://www.ifopt.org.uk/ifopt" xmlns:siri="http://www.siri.org.uk/siri" xmlns:siriWS="http://new.webservice.namespace" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="./siri">
-    <SOAP-ENV:Header />
-    <SOAP-ENV:Body>
-        <siriWS:GetStopMonitoringService>
-            <Request xsi:type="siri:ServiceRequestStructure">
-                <siri:RequestTimestamp>{timestamp}</siri:RequestTimestamp>
-                <siri:RequestorRef xsi:type="siri:ParticipantRefStructure">{user_id}</siri:RequestorRef>
-                <siri:MessageIdentifier xsi:type="siri:MessageQualifierStructure">{user_id}:{numeric_timstamp}</siri:MessageIdentifier>
-                {body}
-            </Request>
-        </siriWS:GetStopMonitoringService>
-    </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>''').strip().replace("\n", "")
-
-_SIRI_REQUEST_BODY = dedent('''
-<siri:StopMonitoringRequest version="IL2.71" xsi:type="siri:StopMonitoringRequestStructure">
-    <siri:RequestTimestamp>{timestamp}</siri:RequestTimestamp>
-    <siri:MessageIdentifier xsi:type="siri:MessageQualifierStructure">{i}</siri:MessageIdentifier>
-    <siri:PreviewInterval>PT30M</siri:PreviewInterval>
-    <siri:MonitoringRef xsi:type="siri:MonitoringRefStructure">{stop_code}</siri:MonitoringRef>
-    <siri:MaximumStopVisits>{max_visits}</siri:MaximumStopVisits>
-</siri:StopMonitoringRequest>
-''').strip().replace("\n", "")
-
 URL = None
 
 
@@ -91,30 +66,24 @@ class SIRIResponse(object):
 
         # ew.
         try:
-            response = xmldict['S:Envelope']['S:Body']['ns7:GetStopMonitoringServiceResponse']
+            response = xmldict['Siri']['ServiceDelivery']
         except KeyError:
             print(json.dumps(xmldict, indent=2))
             print(self.raw_response)
             raise
 
-        # find SIRI namespace
-        siri_namespace = "ns3"  # default to something that works most of the time
-        for key in response.keys():
-          if key.startswith('@xmlns:') and response[key] == 'http://www.siri.org.uk/siri':
-            siri_namespace = key.replace('@xmlns:', '') + ':'
-        answer = response['Answer']
-
-        self.timestamp = answer[siri_namespace + 'ResponseTimestamp']
+        self.timestamp = response['ResponseTimestamp']
         """ Timestamp of the response from the server """
 
-        for delivery in _listify(answer[siri_namespace + 'StopMonitoringDelivery']):
-            if delivery[siri_namespace + 'Status'] != "true":
-                # TODO actually log errors!
-                self.errors.append(delivery[siri_namespace + 'ErrorCondition'][siri_namespace + 'Description'])
-            else:
-                for visit in _listify(delivery[siri_namespace + 'MonitoredStopVisit']):
-                    stop_visit = SIRIStopVisit(visit, siri_namespace)
-                    self.visits[stop_visit.stop_code].append(stop_visit)
+        if 'StopMonitoringDelivery' in response:
+            for delivery in _listify(response['StopMonitoringDelivery']):
+                if delivery['Status'] != "true":
+                    # TODO actually log errors!
+                    self.errors.append(delivery['ErrorCondition']['Description'])
+                elif 'MonitoredStopVisit' in delivery:
+                    for visit in _listify(delivery['MonitoredStopVisit']):
+                        stop_visit = SIRIStopVisit(visit)
+                        self.visits[stop_visit.stop_code].append(stop_visit)
 
     def to_dict(self) -> dict:
         """ Serialize to a dict format which is more readable than the original source """
@@ -159,19 +128,6 @@ class SIRIClient(object):
         self._cache = cache if cache is not None else SimpleMemoryCache()
         self._connector = None
 
-    def _prepare_request_body(self, stop_codes: List[str], max_visits: int) -> str:
-        body = ""
-        timestamp = datetime.now(dateutil.tz.tzlocal()).isoformat()
-        numeric_timstamp = time.time()
-        for i, stop in enumerate(stop_codes):
-            body += _SIRI_REQUEST_BODY.format(stop_code=stop, i=i,
-                                              max_visits=max_visits,
-                                              timestamp=timestamp)
-        return _SIRI_REQUEST_TEMPLATE.format(timestamp=timestamp,
-                                             user_id=self.user_id,
-                                             numeric_timstamp=numeric_timstamp,
-                                             body=body)
-
     async def request(self, stop_codes: List[str], max_visits: int = 50) -> SIRIResponse:
         """ Request real time information for stops in `stop_codes` """
         # Look for stop_codes in cache
@@ -184,16 +140,18 @@ class SIRIClient(object):
             else:
                 from_cache.append((stop, cached))
 
-        headers = {'content-type': 'text/xml; charset=utf-8',
-                   'accept': 'text/xml,multipart/related'}
+        headers = {'Content-Type': 'text/xml; charset=utf-8',
+                   'Accept': 'text/xml,multipart/related',
+                   'Accpet-Encoding': 'gzip,deflate'}
         async with aiohttp.ClientSession() as session:
-            # Maximum 10 stops per request is defined by MoT for version 2.8.
-            # We're still on 2.71, but it's better to be future proof.
             ret = None
             for group in _grouper(to_request, GROUP_SIZE):
                 group = list(filter(None, group))
-                body = self._prepare_request_body(group, max_visits)
-                async with session.post(self.url, data=body, headers=headers) as raw_response:
+                params = {
+                    "Key": self.user_id,
+                    "MonitoringRef": ','.join(group),
+                }
+                async with session.get(self.url, params=params, headers=headers) as raw_response:
                     text = await raw_response.text()
                     response = SIRIResponse(text, group, self.verbose)
                     if ret:
@@ -217,35 +175,35 @@ class SIRIClient(object):
 
 
 class SIRIStopVisit(object):
-    def __init__(self, src, siri_namespace):
+    def __init__(self, src):
         self._src = src
-        self.timestamp = dateutil.parser.parse(src[siri_namespace + 'RecordedAtTime'])
+        self.timestamp = dateutil.parser.parse(src['RecordedAtTime'])
         """  RecordedAtTime from the SIRI response, ie. the timestamp in which the prediction was made """
 
-        self.stop_code = src[siri_namespace + 'MonitoringRef']
+        self.stop_code = src['MonitoringRef']
         """ The stop code for this stop visit """
 
-        journey = src[siri_namespace + 'MonitoredVehicleJourney']
-        self.line_id = journey[siri_namespace + 'LineRef']
+        journey = src['MonitoredVehicleJourney']
+        self.line_id = journey['LineRef']
         """ Matches the route_id from the GTFS file """
 
         self.route_id = self.line_id
         """ line ref or line id is SIRI terminology, route_id is GTFS terminology. We support both. route_id is identical to line_id """
 
-        self.direction_id = journey[siri_namespace + 'DirectionRef']
+        self.direction_id = journey['DirectionRef']
         """ Direction code for this trip """
 
-        self.line_name = journey[siri_namespace + 'PublishedLineName']
+        self.line_name = journey['PublishedLineName']
         """ PublishedLineName. The meaning of this number is unclear for Israel Railways data """
 
-        self.operator_id = journey[siri_namespace + 'OperatorRef']
+        self.operator_id = journey['OperatorRef']
         """ oprator / agency ID of this route. """
 
-        self.destination_id = journey[siri_namespace + 'DestinationRef']
+        self.destination_id = journey['DestinationRef']
         """ The stop code of this trip's destination """
 
         try:
-            vehicle_ref = journey[siri_namespace + 'VehicleRef']
+            vehicle_ref = journey['VehicleRef']
         except KeyError:
             vehicle_ref = None
         self.vehicle_ref = vehicle_ref
@@ -254,19 +212,19 @@ class SIRIStopVisit(object):
 
         # Assuming singular MonitoredCall object.
         # we need to change that assumption if we use the "onward calls" feature of version 2.8, which was not released yet
-        call = journey[siri_namespace + 'MonitoredCall']
-        self.eta = dateutil.parser.parse(call[siri_namespace + 'ExpectedArrivalTime'])
+        call = journey['MonitoredCall']
+        self.eta = dateutil.parser.parse(call['ExpectedArrivalTime'])
         """ Estimated time for arrival """
 
         # Convert SIRI - style trip ID to GTFS style, to make it useful
 
-        if siri_namespace + 'FramedVehicleJourneyRef' in journey:
-            journey_ref = journey[siri_namespace + 'FramedVehicleJourneyRef']
+        if 'FramedVehicleJourneyRef' in journey:
+            journey_ref = journey['FramedVehicleJourneyRef']
 
-            tripdate = dateutil.parser.parse(journey_ref[siri_namespace + 'DataFrameRef'])
+            tripdate = dateutil.parser.parse(journey_ref['DataFrameRef'])
             tripdate = tripdate.strftime('%d%m%y')
 
-            trip_id_part = journey_ref[siri_namespace + 'DatedVehicleJourneyRef']
+            trip_id_part = journey_ref['DatedVehicleJourneyRef']
 
             trip_id = f"{trip_id_part}_{tripdate}"
         else:
@@ -275,7 +233,7 @@ class SIRIStopVisit(object):
         """ Trip ID, unique identifier of this trip per day """
 
         try:
-            status = call[siri_namespace + 'ArrivalStatus']
+            status = call['ArrivalStatus']
         except KeyError:
             status = None
         self.status = status
@@ -284,16 +242,16 @@ class SIRIStopVisit(object):
         self.departed = None
         """ The aimed departure time from the origin station. In some edge case, this is slightly different then the GTFS schedule """
 
-        if siri_namespace + 'AimedDepartureTime' in call:
-            self.departed = dateutil.parser.parse(call[siri_namespace + 'AimedDepartureTime'])
-        elif siri_namespace + 'OriginAimedDepartureTime' in journey:
-            self.departed = dateutil.parser.parse(journey[siri_namespace + 'OriginAimedDepartureTime'])
+        if 'AimedDepartureTime' in call:
+            self.departed = dateutil.parser.parse(call['AimedDepartureTime'])
+        elif 'OriginAimedDepartureTime' in journey:
+            self.departed = dateutil.parser.parse(journey['OriginAimedDepartureTime'])
         else:
             self.departed = None
 
-        if siri_namespace + "VehicleLocation" in journey:
-            self.location = {'lat': journey[siri_namespace + "VehicleLocation"][siri_namespace + "Latitude"],
-                             'lon': journey[siri_namespace + "VehicleLocation"][siri_namespace + "Longitude"]}
+        if "VehicleLocation" in journey:
+            self.location = {'lat': journey["VehicleLocation"]["Latitude"],
+                             'lon': journey["VehicleLocation"]["Longitude"]}
         else:
             self.location = None
 

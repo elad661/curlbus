@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # mock_siri_server.py - a fake SIRI-SM server for testing curlbus
 #
-# Copyright 2018 Elad Alfassa <elad@fedoraproject.org>
+# Copyright 2018,2020 Elad Alfassa <elad@fedoraproject.org>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,54 +35,50 @@ from datetime import datetime, timedelta
 from dateutil.parser import parse
 import xmltodict
 
-SIRI_RESPONSE_BODY = """<?xml version="1.0" ?>
-<S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
-<S:Body>
-<ns7:GetStopMonitoringServiceResponse xmlns:ns3="http://www.siri.org.uk/siri" xmlns:ns4="http://www.ifopt.org.uk/acsb" xmlns:ns5="http://www.ifopt.org.uk/ifopt" xmlns:ns6="http://datex2.eu/schema/1_0/1_0" xmlns:ns7="http://new.webservice.namespace">
-<Answer>
-<ns3:ResponseTimestamp>{timestamp}</ns3:ResponseTimestamp>
-<ns3:ProducerRef>Mock Siri Server</ns3:ProducerRef>
-<ns3:ResponseMessageIdentifier>76203</ns3:ResponseMessageIdentifier>
-<ns3:RequestMessageRef>[REDACTED]</ns3:RequestMessageRef>
-<ns3:Status>true</ns3:Status>
-<ns3:StopMonitoringDelivery version="IL2.71">
-<ns3:ResponseTimestamp>{timestamp}</ns3:ResponseTimestamp>
-<ns3:Status>true</ns3:Status>
+SIRI_RESPONSE_BODY = """<?xml version="1.0" encoding="UTF-8"?>
+<Siri>
+<ServiceDelivery>
+<ResponseTimestamp>{timestamp}</ResponseTimestamp>
+<ProducerRef>Mock Siri Server</ProducerRef>
+<ResponseMessageIdentifier>76203</ResponseMessageIdentifier>
+<RequestMessageRef>[REDACTED]</RequestMessageRef>
+<Status>true</Status>
+<StopMonitoringDelivery version="2.8">
+<ResponseTimestamp>{timestamp}</ResponseTimestamp>
+<Status>true</Status>
 {body}
-</ns3:StopMonitoringDelivery>
-</Answer>
-</ns7:GetStopMonitoringServiceResponse>
-</S:Body>
-</S:Envelope>
+</StopMonitoringDelivery>
+</ServiceDelivery>
+</Siri>
 """
 
 STOPVISIT_TEMPLATE = """
-<ns3:MonitoredStopVisit>
-<ns3:RecordedAtTime>{timestamp}</ns3:RecordedAtTime>
-<ns3:ItemIdentifier>{i}</ns3:ItemIdentifier>
-<ns3:MonitoringRef>{stop_code}</ns3:MonitoringRef>
-<ns3:MonitoredVehicleJourney>
-<ns3:LineRef>{route_id}</ns3:LineRef>
-<ns3:DirectionRef>{direction_id}</ns3:DirectionRef>
-<ns3:FramedVehicleJourneyRef>
-<ns3:DataFrameRef>{trip_id_date}</ns3:DataFrameRef>
-<ns3:DatedVehicleJourneyRef>{trip_id}</ns3:DatedVehicleJourneyRef>
-</ns3:FramedVehicleJourneyRef>
-<ns3:PublishedLineName>{route_short_name}</ns3:PublishedLineName>
-<ns3:OperatorRef>{operator_id}</ns3:OperatorRef>
-<ns3:DestinationRef>{destination_code}</ns3:DestinationRef>
-<ns3:OriginAimedDepartureTime>{departed}</ns3:OriginAimedDepartureTime>
-<ns3:VehicleLocation>
-<ns3:Longitude>34.746543884277344</ns3:Longitude>
-<ns3:Latitude>32.012107849121094</ns3:Latitude>
-</ns3:VehicleLocation>
-<ns3:VehicleRef>###</ns3:VehicleRef>
-<ns3:MonitoredCall>
-<ns3:StopPointRef>{stop_code}</ns3:StopPointRef>
-<ns3:ExpectedArrivalTime>{eta}</ns3:ExpectedArrivalTime>
-</ns3:MonitoredCall>
-</ns3:MonitoredVehicleJourney>
-</ns3:MonitoredStopVisit>
+<MonitoredStopVisit>
+<RecordedAtTime>{timestamp}</RecordedAtTime>
+<ItemIdentifier>{i}</ItemIdentifier>
+<MonitoringRef>{stop_code}</MonitoringRef>
+<MonitoredVehicleJourney>
+<LineRef>{route_id}</LineRef>
+<DirectionRef>{direction_id}</DirectionRef>
+<FramedVehicleJourneyRef>
+<DataFrameRef>{trip_id_date}</DataFrameRef>
+<DatedVehicleJourneyRef>{trip_id}</DatedVehicleJourneyRef>
+</FramedVehicleJourneyRef>
+<PublishedLineName>{route_short_name}</PublishedLineName>
+<OperatorRef>{operator_id}</OperatorRef>
+<DestinationRef>{destination_code}</DestinationRef>
+<OriginAimedDepartureTime>{departed}</OriginAimedDepartureTime>
+<VehicleLocation>
+<Longitude>34.746543884277344</Longitude>
+<Latitude>32.012107849121094</Latitude>
+</VehicleLocation>
+<VehicleRef>###</VehicleRef>
+<MonitoredCall>
+<StopPointRef>{stop_code}</StopPointRef>
+<ExpectedArrivalTime>{eta}</ExpectedArrivalTime>
+</MonitoredCall>
+</MonitoredVehicleJourney>
+</MonitoredStopVisit>
 """
 
 RANDOM_TRIPS_QUERY = """SELECT t.trip_id
@@ -131,7 +127,7 @@ class MockSIRIServer(object):
         app["config"] = config
 
         db.init_app(app)
-        app.add_routes([web.post('/{tail:.*}', self.handle_request)])
+        app.add_routes([web.get('/{tail:.*}', self.handle_request)])
         self._app = app
 
     def run(self, port):
@@ -139,10 +135,8 @@ class MockSIRIServer(object):
 
     async def handle_request(self, request):
         db = request.app['db']
-        data = await request.text()
-        xmldict = xmltodict.parse(data)
         body = ""
-        stops = parse_request(xmldict)
+        stops = request.query['MonitoringRef'].split(',')
         for stop in stops:
             for i, trip in enumerate(await random_trips(db, stop)):
                 # Collect variables

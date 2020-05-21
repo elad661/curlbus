@@ -7,3 +7,4 @@ aiocache >= 0.9.1
 ansi2html >= 1.4.2
 setuptools >= 39.2.0
 geopy >= 1.11.0
+gino-aiohttp >= 0.1.0
