@@ -16,13 +16,12 @@
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-from typing import Dict
+from typing import Dict, List
 import aiohttp
 import dateutil.parser
 import dateutil.tz
 import json
 import time
-import xmltodict
 from aiocache import SimpleMemoryCache
 from aiocache.base import BaseCache
 from itertools import zip_longest
@@ -51,10 +50,9 @@ def _grouper(iterable, n, fillvalue=None):
 
 
 class SIRIResponse(object):
-    def __init__(self, raw_response, stop_codes, verbose=False):
-        xmldict = xmltodict.parse(raw_response)
+    def __init__(self, json_response: Dict, stop_codes: List[str], verbose=False):
         if verbose:
-            print(json.dumps(xmldict, indent=2))
+            print(json.dumps(json_response, indent=2))
 
         self.visits: Dict[str, SIRIStopVisit] = {}
         """ Stop visits. A dictionary in the form of {stop_code: SIRIStopVisit} """
@@ -66,10 +64,9 @@ class SIRIResponse(object):
 
         # ew.
         try:
-            response = xmldict['Siri']['ServiceDelivery']
+            response = json_response['Siri']['ServiceDelivery']
         except KeyError:
-            print(json.dumps(xmldict, indent=2))
-            print(self.raw_response)
+            print(json.dumps(json_response, indent=2))
             raise
 
         self.timestamp = response['ResponseTimestamp']
@@ -107,13 +104,13 @@ class CachedSIRIResponse(SIRIResponse):
     """ a SIRI response that was taken entirely from the cache """
     def __init__(self, visits):
         self.errors = []
-        self.visits = visits
+        self.visits: Dict[str, List[SIRIStopVisit]] = visits
         self.timestamp = None
 
-        # find a timestamp in one of the visits:
-        for stop, visits in visits.items():
-            if len(visits) > 0:
-                self.timestamp = visits[0].timestamp
+        # find a timestamp in one of the stops in this cache entry:
+        for stop_visits in visits.values():
+            if len(stop_visits) > 0:
+                self.timestamp = stop_visits[0].timestamp
                 break
 
 
@@ -140,8 +137,7 @@ class SIRIClient(object):
             else:
                 from_cache.append((stop, cached))
 
-        headers = {'Content-Type': 'text/xml; charset=utf-8',
-                   'Accept': 'text/xml,multipart/related',
+        headers = {'Accept': 'application/json',
                    'Accpet-Encoding': 'gzip,deflate'}
         async with aiohttp.ClientSession() as session:
             ret = None
@@ -152,11 +148,11 @@ class SIRIClient(object):
                     "MonitoringRef": ','.join(group),
                 }
                 async with session.get(self.url, params=params, headers=headers) as raw_response:
-                    try:                    
-                        text = await raw_response.text(encoding="utf-8")
+                    try:
+                        json_response = await raw_response.json(encoding="utf-8")
                     except UnicodeDecodeError:
-                        text = await raw_response.text()
-                    response = SIRIResponse(text, group, self.verbose)
+                        json_response = await raw_response.json()
+                    response = SIRIResponse(json_response, group, self.verbose)
                     if ret:
                         # Merge SIRIResponse objects if we have more than
                         # one group

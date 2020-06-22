@@ -19,7 +19,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Usage: mock_siri_server.py [-c <file>] [-p <port>]
 
-Start mock siri server
+A mock siri api server that lies to you about when your next bus is coming.
+use for testing curlbus without MoT API access.
+
 Options:
   -c <file>, --config <file>  Use the specified configuration file.
   -p <port>, --port <port>  Port to listen on. Defaults to 8081
@@ -33,53 +35,6 @@ from curlbus.gtfs import model as gtfs_model
 from random import randint
 from datetime import datetime, timedelta
 from dateutil.parser import parse
-import xmltodict
-
-SIRI_RESPONSE_BODY = """<?xml version="1.0" encoding="UTF-8"?>
-<Siri>
-<ServiceDelivery>
-<ResponseTimestamp>{timestamp}</ResponseTimestamp>
-<ProducerRef>Mock Siri Server</ProducerRef>
-<ResponseMessageIdentifier>76203</ResponseMessageIdentifier>
-<RequestMessageRef>[REDACTED]</RequestMessageRef>
-<Status>true</Status>
-<StopMonitoringDelivery version="2.8">
-<ResponseTimestamp>{timestamp}</ResponseTimestamp>
-<Status>true</Status>
-{body}
-</StopMonitoringDelivery>
-</ServiceDelivery>
-</Siri>
-"""
-
-STOPVISIT_TEMPLATE = """
-<MonitoredStopVisit>
-<RecordedAtTime>{timestamp}</RecordedAtTime>
-<ItemIdentifier>{i}</ItemIdentifier>
-<MonitoringRef>{stop_code}</MonitoringRef>
-<MonitoredVehicleJourney>
-<LineRef>{route_id}</LineRef>
-<DirectionRef>{direction_id}</DirectionRef>
-<FramedVehicleJourneyRef>
-<DataFrameRef>{trip_id_date}</DataFrameRef>
-<DatedVehicleJourneyRef>{trip_id}</DatedVehicleJourneyRef>
-</FramedVehicleJourneyRef>
-<PublishedLineName>{route_short_name}</PublishedLineName>
-<OperatorRef>{operator_id}</OperatorRef>
-<DestinationRef>{destination_code}</DestinationRef>
-<OriginAimedDepartureTime>{departed}</OriginAimedDepartureTime>
-<VehicleLocation>
-<Longitude>34.746543884277344</Longitude>
-<Latitude>32.012107849121094</Latitude>
-</VehicleLocation>
-<VehicleRef>###</VehicleRef>
-<MonitoredCall>
-<StopPointRef>{stop_code}</StopPointRef>
-<ExpectedArrivalTime>{eta}</ExpectedArrivalTime>
-</MonitoredCall>
-</MonitoredVehicleJourney>
-</MonitoredStopVisit>
-"""
 
 RANDOM_TRIPS_QUERY = """SELECT t.trip_id
                         FROM stoptimes as st
@@ -88,17 +43,6 @@ RANDOM_TRIPS_QUERY = """SELECT t.trip_id
                         WHERE s.stop_code='{code}'
                         GROUP BY t.trip_id
                         ORDER BY random() LIMIT 5;"""
-
-
-def parse_request(data: dict) -> list:
-    """ quick and dirty parser for SIRI requests. Returns a list of stop codes, nothing else """
-    ret = []
-    requests = data['SOAP-ENV:Envelope']['SOAP-ENV:Body']['siriWS:GetStopMonitoringService']['Request']['siri:StopMonitoringRequest']
-    if not isinstance(requests, list):
-        requests = [requests]
-    for request in requests:
-        ret.append(int(request['siri:MonitoringRef']['#text']))
-    return ret
 
 
 async def random_trips(db, stop_code: int):
@@ -134,10 +78,30 @@ class MockSIRIServer(object):
         web.run_app(self._app, port=port)
 
     async def handle_request(self, request):
+        response = {
+            "Siri": {
+                "ServiceDelivery": {
+                    "ResponseTimestamp": str(now()),
+                    "ProducerRef": "Mock Siri Server",
+                    "ResponseMessageIdentifier": 7603,
+                    "RequestMessageRef": "[REDACTED]",
+                    "Status": "true",
+                    "StopMonitoringDelivery": {
+                        "-version": "2.8",
+                        "Status": "true",
+                        "ResponseTimestamp": str(now()),
+                        "MonitoredStopVisit": [
+                            # To be filled
+                        ]
+                    }
+                }
+            }
+        }
         db = request.app['db']
-        body = ""
-        stops = request.query['MonitoringRef'].split(',')
-        for stop in stops:
+
+        visits = response['Siri']['ServiceDelivery']['StopMonitoringDelivery']['MonitoredStopVisit']
+        print(request.query['MonitoringRef'])
+        for stop in request.query['MonitoringRef'].split(','):
             for i, trip in enumerate(await random_trips(db, stop)):
                 # Collect variables
                 route = await get_route_for_trip(db, trip)
@@ -150,22 +114,33 @@ class MockSIRIServer(object):
                 trip_id = trip.trip_id.split('_')[0]
                 trip_date = parse(trip.trip_id.split('_')[1])
 
-                # Create xml object in the most hackish way possible
-                body += STOPVISIT_TEMPLATE.format(i=i,
-                                                  trip_id=trip_id,
-                                                  trip_id_date=trip_date,
-                                                  departed=str(departed),
-                                                  eta=str(eta),
-                                                  route_id=trip.route_id,
-                                                  timestamp=timestamp,
-                                                  route_short_name=route.route_short_name,
-                                                  stop_code=stop,
-                                                  operator_id=route.agency_id,
-                                                  direction_id=trip.direction_id,
-                                                  destination_code=destination_code)
-
-        resp = SIRI_RESPONSE_BODY.format(timestamp=now(), body=body)
-        return web.Response(text=resp)
+                visits.append({
+                    "RecordedAtTime": str(timestamp),
+                    "ItemIdentifier": i,
+                    "MonitoringRef": stop,
+                    "MonitoredVehicleJourney": {
+                        "LineRef": trip.route_id,
+                        "DirectionRef": trip.direction_id,
+                        "FramedVehicleJourneyRef": {
+                            "DataFrameRef": str(trip_date),
+                            "DatedVehicleJourneyRef": trip_id
+                        },
+                        "PublishedLineName": route.route_short_name,
+                        "OperatorRef": route.agency_id,
+                        "DestinationRef": destination_code,
+                        "OriginAimedDepartureTime": str(departed),
+                        "VehicleLocation": {
+                            "Longitude": 34.746543884277344,
+                            "Latitude": 32.012107849121094
+                        },
+                        "VehicleRef": "###",
+                        "MonitoredCall": {
+                            "StopPointRef": stop,
+                            "ExpectedArrivalTime": str(eta)
+                        }
+                    }
+                })
+        return web.json_response(response)
 
 
 def main():

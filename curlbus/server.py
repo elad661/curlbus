@@ -18,6 +18,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 from . import __version__
 from aiohttp import web
+from aiohttp import client_exceptions
 from gino.ext.aiohttp import Gino
 from .operators import operators, operators_by_id, operator_names, operator_logos
 from .render import render_station_arrivals, render_operator_index, render_route_alternatives, render_route_map, render_station_list
@@ -113,12 +114,15 @@ class CurlbusServer(object):
         stops = {}
         errors = []
         for stop_code in stop_codes:
-            # collect info for the stops not in cache
-            stop_info = await get_stop_info(db, stop_code)
-            if stop_info is None:
-                # errors are batched, instead of returning the first one
-                errors.append(f"Invalid stop code {stop_code}\n")
-            stops[stop_code] = stop_info
+            if stop_code in stops:
+                errors.append(f"Duplicate stop code {stop_code}\n")
+            else:
+                # collect info for the stops not in cache
+                stop_info = await get_stop_info(db, stop_code)
+                if stop_info is None:
+                    # errors are batched, instead of returning the first one
+                    errors.append(f"Invalid stop code {stop_code}\n")
+                stops[stop_code] = stop_info
 
         if errors:
             if accept == 'json':
@@ -127,7 +131,10 @@ class CurlbusServer(object):
                 return web.Response(text='\n'.join(errors),
                                     status=404)
 
-        siri_response = await client.request(stop_codes)
+        try:
+            siri_response = await client.request(stop_codes)
+        except client_exceptions.ClientConnectorError as e:
+            return web.Response(text=f'Error connecting to MoT server, {type(e).__name__}: [Errno {e.os_error.errno}]\n', status=500)
 
         # filtering, if needed
         if 'filter' in request.query:
