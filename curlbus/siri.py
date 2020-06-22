@@ -152,7 +152,10 @@ class SIRIClient(object):
                     "MonitoringRef": ','.join(group),
                 }
                 async with session.get(self.url, params=params, headers=headers) as raw_response:
-                    text = await raw_response.text()
+                    try:                    
+                        text = await raw_response.text(encoding="utf-8")
+                    except UnicodeDecodeError:
+                        text = await raw_response.text()
                     response = SIRIResponse(text, group, self.verbose)
                     if ret:
                         # Merge SIRIResponse objects if we have more than
