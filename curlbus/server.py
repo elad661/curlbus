@@ -27,8 +27,10 @@ from .gtfs.utils import (get_stop_info, get_routes, get_route_route,
                          get_arrival_gtfs_info, translate_route_name,
                          count_routes, get_rail_stations, get_nearby_stops)
 from .gtfs import model as gtfs_model
+from .gtfs_rt import GtfsRtClient
 from .html import html_template, relative_linkify
 from aiocache import SimpleMemoryCache
+from datetime import datetime
 import os.path
 import ansi2html
 # monkey-patch ansi2html to get a more modern HTML document structure and a footer
@@ -67,6 +69,9 @@ class CurlbusServer(object):
                                                                  font_size='16px')
         app['siriclient'] = SIRIClient(config["mot"]["url"],
                                        config["mot"]["user_id"])
+
+        app['gtfs-rt-client'] = GtfsRtClient(db)
+
         db.init_app(app)
         app.router.add_static("/static/", os.path.join(os.path.dirname(__file__), '..', "static"))
         app.add_routes([web.get('/{prefix:0*}{stop_code:\d+(\+\d+)*}{tail:/*}', self.handle_station),
@@ -92,6 +97,20 @@ class CurlbusServer(object):
             return web.Response(text=text, content_type="text/html")
         return web.Response(text=text)
 
+    async def realtime_request(self, request, stop_codes):
+        client: SIRIClient = request.app['siriclient']
+        gtfs_rt_client: GtfsRtClient = request.app['gtfs-rt-client']
+        response = await client.request(stop_codes)
+
+        today = datetime.now().isoweekday()
+        if today in [5, 6]:
+            # municipal buses are weekend only, so only query them on the weekend
+            gtfs_rt_response = await gtfs_rt_client.request(stop_codes)
+            response.append(gtfs_rt_response)
+
+        return response
+
+
     async def handle_station(self, request):
         """ Get real-time arrivals for a specific station """
         db = request['connection']
@@ -100,8 +119,6 @@ class CurlbusServer(object):
         # TODO IP-based rate limit?
         # all these are because this is the interface of the user to the MoT
         # API and I do not want to get banned from the MoT API
-        client: SIRIClient = request.app['siriclient']
-
         accept = parse_accept_header(request)
 
         if len(stop_codes) > 30:
@@ -132,25 +149,25 @@ class CurlbusServer(object):
                                     status=404)
 
         try:
-            siri_response = await client.request(stop_codes)
+            realtime = await self.realtime_request(request, stop_codes)
         except client_exceptions.ClientConnectorError as e:
             return web.Response(text=f'Error connecting to MoT server, {type(e).__name__}: [Errno {e.os_error.errno}]\n', status=500)
 
         # filtering, if needed
         if 'filter' in request.query:
             line_names = set(request.query['filter'].split(','))
-            for stop_code, visits in siri_response.visits.items():
+            for stop_code, visits in realtime.visits.items():
                 filtered_visits = [visit for visit in visits if visit.line_name in line_names]
-                siri_response.visits[stop_code] = filtered_visits
+                realtime.visits[stop_code] = filtered_visits
 
         # add static GTFS info for each route
-        for stop_code, visits in siri_response.visits.items():
+        for _, visits in realtime.visits.items():
             for arrival in visits:
                 gtfsinfo = await get_arrival_gtfs_info(arrival, db)
                 arrival.static_info = {"route": gtfsinfo}
 
         if accept == 'json':
-            out = siri_response.to_dict()
+            out = realtime.to_dict()
             if len(stop_codes) == 1:
                 # backwards compatibility: stop_info as a single item
                 out['stop_info'] = stop_info
@@ -160,7 +177,7 @@ class CurlbusServer(object):
         else:
             text = ""
             for stop_code in stop_codes:
-                text += render_station_arrivals(stop_code, stops[stop_code], siri_response)
+                text += render_station_arrivals(stop_code, stops[stop_code], realtime)
             return self.ansi_or_html(accept, request, text)
 
     async def handle_operator_index(self, request):
@@ -169,12 +186,17 @@ class CurlbusServer(object):
         db = request['connection']
         accept = parse_accept_header(request)
         for operator in await db.all(gtfs_model.Agency.query):
-            operator_json = {'id': operator.agency_id,
-                             'website': operator.agency_url,
-                             'name': {'HE': operator.agency_name,
-                                      'EN': operator_names[int(operator.agency_id)]},
-                             'url': f'/{operators_by_id[int(operator.agency_id)]}'}
-            response.append(operator_json)
+            if int(operator.agency_id) in operators_by_id:
+                operator_json = {'id': operator.agency_id,
+                                'website': operator.agency_url,
+                                'name': { 'HE': operator.agency_name },
+                                'url': f'/{operators_by_id[int(operator.agency_id)]}'}
+                if int(operator.agency_id) in operator_names:
+                    operator_json['name']['EN'] = operator_names[int(operator.agency_id)]
+                else:
+                    # no English translation, fall back to Hebrew name
+                    operator_json['name']['EN'] = operator_json['name']['HE']
+                response.append(operator_json)
         if accept == 'json':
             return web.json_response(response)
         else:
@@ -185,7 +207,6 @@ class CurlbusServer(object):
         """ Get a schematic map for a specific route """
         operator = request.match_info['operator'].lower().strip("/")
         db = request['connection']
-        client = request.app['siriclient']
         if operator not in operators:
             # Fail fast for invalid data
             return web.Response(text="Unknown operator, check /operators\n",
@@ -204,17 +225,16 @@ class CurlbusServer(object):
             # Render route map
             index = 0 if len(routes) == 1 else int(alternative)
 
-            route = routes[index]
-            # TODO figure out direction_id
+            route, direction_id = routes[index]
 
-            routemap = await get_route_route(db, route.route_id, 0)
+            routemap = await get_route_route(db, route.route_id, direction_id)
             if routemap is None:
                 text = "This route has no map! Strange..."
                 return self.ansi_or_html(accept, request, text)
 
             # get realtime ETAs for each stop in this route
             stop_codes = [stop.stop_code for stop in routemap]
-            realtime = await client.request(stop_codes)
+            realtime = await self.realtime_request(request, stop_codes)
             etas = {}
             for stop_code, visits in realtime.visits.items():
                 for visit in visits:
@@ -245,7 +265,7 @@ class CurlbusServer(object):
         elif len(routes) > 1 and not alternative:
             # Render route alternative selection screen
             alternatives = []
-            for route in routes:
+            for route, direction_id in routes:
                 alternatives.append({"long_name": await translate_route_name(db, route),
                                      "short_name": route.route_short_name})
             if accept == 'json':

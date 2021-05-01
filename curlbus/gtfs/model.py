@@ -25,6 +25,7 @@
 # This file intentionally only supports a small subset of GTFS needed for curlbus
 import re
 from gino import Gino
+from sqlalchemy import select
 STOP_DESC_REGEX = re.compile("(?:רחוב:)(?P<street>.*)(?:עיר:)(?P<city>.*)(?:רציף:)(?P<platform>.*)(?:קומה:)(?P<floor>.*)")
 
 db = Gino()
@@ -123,6 +124,7 @@ class Trip(db.Model):
     trip_headsign = db.Column(db.Unicode)
     direction_id = db.Column(db.Integer)
     shape_id = db.Column(db.Unicode)
+    wheelchair_accessible = db.Column(db.Unicode)
 
     def __repr__(self):
         return f'<Trip {self.trip_id}>'
@@ -214,6 +216,23 @@ class City(db.Model):
 
     def __repr__(self):
         return f'<City translation {self.name}={self.english_name}>'
+
+
+class TAShabbatStop(db.Model):
+    """ mapping between stop_ids in the Tel Aviv Shabbat buses GTFS feed to the MoT GTFS stop_ids """
+    __tablename__ = 'telaviv_shabbat_stops'
+
+    ta_stop_id = db.Column(db.Unicode, primary_key=True)
+    """ stop_id from the Tel Aviv Shabbat GTFS feed """
+
+    stop_id = db.Column(db.Unicode, index=True)
+    """ The equivalent MoT stop_id """
+
+    @staticmethod
+    async def get_mapped_stop_codes(connection, stop_ids):
+        query = select([TAShabbatStop.ta_stop_id, Stop.stop_code]).where(TAShabbatStop.ta_stop_id.in_(stop_ids)).where(Stop.stop_id == TAShabbatStop.stop_id)
+        result = await connection.all(query)
+        return { stop.ta_stop_id: stop.stop_code for stop in result }
 
 
 tables = (Agency, Route, Trip, Stop, StopTime, Translation, City)

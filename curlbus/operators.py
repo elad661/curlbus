@@ -23,6 +23,7 @@ operators = {'rail': 2,
              'dan_south': 31,
              'dan_beersheba': 32,
              'cable_express': 33,  # ??????
+             'tnufa': 34,
              # East Jerusalem operators - not a lot of info online, so I might
              # be committing horrible spelling mistakes here
              'jlm_ramalla': 42,
@@ -42,6 +43,8 @@ operators = {'rail': 2,
              'sherut_hai': 97,
              'sherut_4_5': 98,
              'sherut_hadar_lod': 130,
+             # Municipal buses (for example, Tel Aviv's shabbat buses)
+             'tlv': 1543519,  # Tel Aviv's shabbat buses
             }
 """mapping URL slugs for operator IDs. This has to be done because the original
 name in the GTFS agency.txt is in Hebrew, and that wouldn't be nice in a URL"""
@@ -69,6 +72,7 @@ operator_names = {2: "Israel Railways",
                   31: "Dan South",
                   32: "Dan Beersheba",
                   33: "Cable Express (?)",  # ????
+                  34: "Tnufa",
                   # Not sure about the spelling here, I just guessed
                   42: "Jerusalem - Ramalla",
                   44: "Jerusalem - Abu Tor",
@@ -87,6 +91,8 @@ operator_names = {2: "Israel Railways",
                   97: "Sherut: Hai",
                   98: "Sherut: Rav-Kavit 4-5",
                   130: "Sherut: Hadar-Lod",
+                  # Municipal buses:
+                  1543519: "Tel Aviv Shabbat buses",
                   }
 """ Translating operator names to English, as this is missing from the
 official translation table """

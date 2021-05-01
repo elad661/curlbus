@@ -25,9 +25,6 @@ import time
 from aiocache import SimpleMemoryCache
 from aiocache.base import BaseCache
 from itertools import zip_longest
-from datetime import datetime
-from typing import List
-from textwrap import dedent
 GROUP_SIZE = 25
 
 URL = None
@@ -54,9 +51,9 @@ class SIRIResponse(object):
         if verbose:
             print(json.dumps(json_response, indent=2))
 
-        self.visits: Dict[str, SIRIStopVisit] = {}
+        self.visits: Dict[str, List[SIRIStopVisit]] = {}
         """ Stop visits. A dictionary in the form of {stop_code: SIRIStopVisit} """
-        self.errors = []
+        self.errors: List[str] = []
         """ Errors, if any"""
 
         for stop_code in stop_codes:
@@ -96,8 +93,12 @@ class SIRIResponse(object):
         self.errors += other.errors
         for stop_code, visits in other.visits.items():
             if stop_code in self.visits:
-                raise ValueError("Merging requests for the same stop is not supported")
-            self.visits[stop_code] = visits
+                for visit in visits:
+                    if not any(my_visit == visit for my_visit in self.visits[stop_code]):
+                        # a new visit! let's apped it
+                        self.visits[stop_code].append(visit)
+            else:
+                self.visits[stop_code] = visits
 
 
 class CachedSIRIResponse(SIRIResponse):
@@ -176,6 +177,8 @@ class SIRIClient(object):
 class SIRIStopVisit(object):
     def __init__(self, src):
         self._src = src
+        self.producer = 'SIRI'
+
         self.timestamp = dateutil.parser.parse(src['RecordedAtTime'])
         """  RecordedAtTime from the SIRI response, ie. the timestamp in which the prediction was made """
 
@@ -210,7 +213,7 @@ class SIRIStopVisit(object):
         For buses, this is either the license plate number, or the internal vehicle number """
 
         # Assuming singular MonitoredCall object.
-        # we need to change that assumption if we use the "onward calls" feature of version 2.8, which was not released yet
+        # need to change that assumption if the "onward calls" feature of version 2.8 will ever be used
         call = journey['MonitoredCall']
         self.eta = dateutil.parser.parse(call['ExpectedArrivalTime'])
         """ Estimated time for arrival """
@@ -259,6 +262,15 @@ class SIRIStopVisit(object):
 
     def __repr__(self):
         return "SIRIStopVisit <line: {0}, eta: {1}>".format(self.line_id, self.eta)
+
+    def __eq__(self, other):
+        return (self.producer == other.producer
+                and self.stop_code == other.stop_code
+                and self.timestamp == other.timestamp
+                and self.eta == other.eta
+                and self.route_id == other.route_id
+                and self.vehicle_ref == other.vehicle_ref
+                and self.direction_id == other.direction_id)
 
     def to_dict(self) -> dict:
         ret = {}

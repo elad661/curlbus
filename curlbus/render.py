@@ -21,11 +21,12 @@ from .siri import SIRIResponse
 from .operators import operator_names, operators_by_id
 from datetime import datetime
 import dateutil.tz
+from typing import Dict
 
 
 def table(header_lines: list, rows: list) -> str:
     """ Draw a unicode box drawing characters based table """
-    width = {}
+    width : Dict[int, int] = {}
 
     # First pass: calculate column width
     table_width = 0
@@ -191,14 +192,23 @@ def render_route_alternatives(operator_id: str, routes: list) -> str:
     # Find width for boxes
     width = padding
     for route in routes:
-        name_parts = route['long_name'].split('<->')
+        if '<->' in route['long_name']:
+            separator = '<->'
+        else:
+            separator = ' - '
+        name_parts = route['long_name'].split(separator)
         this_width = max(len(part) for part in name_parts) + 2
         if this_width > width:
             width = this_width
 
     # Draw a box for every route
     for index, route in enumerate(routes):
-        name_parts = route['long_name'].split('<->')
+        if '<->' in route['long_name']:
+            separator = '<->'
+        else:
+            separator = ' - '
+        name_parts = route['long_name'].split(separator)
+        print(name_parts)
         ret.append("╭"+("─"*width)+"╮")
         ret.append("│" + name_parts[0].center(width) + "│")
         ret.append("│" + "▼".center(width) + "│")

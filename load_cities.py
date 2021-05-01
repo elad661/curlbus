@@ -36,7 +36,7 @@ import io
 import time
 # https://data.gov.il/dataset/citiesandsettelments/resource/d4901968-dad3-4845-a9b0-a57d027f11ab
 DATASET_BASE_URL = "https://data.gov.il"
-DATASET = "/api/action/datastore_search?resource_id=d4901968-dad3-4845-a9b0-a57d027f11ab"
+DATASET = "/api/action/datastore_search?resource_id=d4901968-dad3-4845-a9b0-a57d027f11ab&include_total=true"
 headers = { 'User-Agent': 'Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:72.0) Gecko/20100101 Firefox/72.0' }
 
 db = model.db

@@ -15,10 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 # SPDX-License-Identifier: GPL-3.0-or-later
+from typing import List, Dict
 import geopy.distance
 from aiocache import cached
 from sqlalchemy import func, select
-from .model import Trip, Route, Stop, Agency, Translation, City
+from .model import Trip, Route, Stop, StopTime, Agency, Translation, City
 from .town_synonyms import towns
 from ..operators import operator_names, operators
 
@@ -137,7 +138,48 @@ async def get_routes(db, operator_id, route_name):
                                             Route.route_short_name == route_name))
     # sorted by id to make sure the order is consistent when there are
     # multiple routes with the same name and operator
-    return sorted(routes, key=lambda r: r.route_id)
+    routes = sorted(routes, key=lambda r: r.route_id)
+    if operator_id != operators['tlv']:
+        return [(route, None) for route in routes]
+
+    # Hack for Tel Aviv weekend buses GTFS. Unlike MoT GTFS it actually uses direction_id
+    # and that confuses the rest of curlbus, which is built for the weird MoT GTFS
+    # since MoT GTFS is still my primary target, I can just add some hacks to make each
+    # direction_id appear a distinct route
+    ret = []
+    for route in routes:
+        # it's not enough to just append two tuples with direction_id 1 and direction_id 0
+        # I need to also find the first and last stops of each direction, so route_long_name
+        # would fit the MoT format
+        # TODO
+        ret.append((route, 0))
+        ret.append((route, 1))
+    return ret
+
+
+@cached_no_db(ttl=30*MINUTES)
+async def get_routes_for_trips(db, trip_ids: List[str] = []) -> Dict[str, Dict[str, str]]:
+    """ For the GTFS-RT adapter - get route info for a collection of trips """
+    trips = await db.all(select([Trip.trip_id, Trip.direction_id, Route])
+                          .where(Trip.route_id == Route.route_id)
+                          .where(Trip.trip_id.in_(trip_ids)))
+    ret: Dict[str, Dict[str, str]] = {}
+    for trip in trips:
+        destination = await db.first(select([StopTime, Stop])
+                                      .where(StopTime.trip_id == trip.trip_id)
+                                      .where(Stop.stop_id == StopTime.stop_id)
+                                      .order_by(StopTime.stop_sequence.desc())
+                                    )
+
+        ret[trip.trip_id] = {
+            'direction_id': trip.direction_id,
+            'route_id': trip.route_id,
+            'route_short_name': trip.route_short_name,
+            'route_long_name': trip.route_long_name,
+            'agency_id': trip.agency_id,
+            'destination_code': destination.stop_code
+        }
+    return ret
 
 
 @cached_no_db(ttl=15*MINUTES)
@@ -146,8 +188,12 @@ async def get_route_route(db, route_id, direction_id):
     # 1. Find a trip for this route
     # 2. Find StopTimes for this trip, build a dict mapping code -> sequence location
     # 3. Query stops, return sorted by lambda stop: sequence[stop.stop_code]
-    # TODO direction_id!!!
-    trip = await db.first(Trip.query.where(Trip.route_id == route_id))
+    query = Trip.query.where(Trip.route_id == route_id)
+
+    if direction_id is not None:
+        query = Trip.query.where(Trip.route_id == route_id).where(Trip.direction_id == direction_id)
+
+    trip = await db.first(query)
     if trip is None:
         return None
     stoptimes = await trip.get_stop_times(db)
@@ -168,7 +214,11 @@ async def translate_route_name(db, route):
     # long route names are in the following format:
     # route_long_name = רדינג-תל אביב יפו<->ת. מרכזית ת''א ק. 4/הורדה-תל אביב יפו-10
     # so a bunch of splits should get us proper translation
-    origin, destination = route.route_long_name.split('<->')
+    if '<->' in route.route_long_name:
+        separator = '<->'
+    else:
+        separator = ' - '
+    splitted = route.route_long_name.split(separator)
 
     async def translate_part(part):
         # in some cases we don't want to split at all
@@ -177,25 +227,37 @@ async def translate_route_name(db, route):
             return full_part_translation
 
         # But in other cases, we need to do some heuristics
-        stop_name = part.split('-')[0].strip()
-        stop_name_translation = await Translation.get(db, stop_name, lang='EN')
-        if stop_name_translation is not None:
-            stop_name = stop_name_translation.translation
-        town = part.split('-')[1].strip()
+        stop_name = None
+        if '-' in part:
+            stop_name = part.split('-')[0].strip()
+            stop_name_translation = await Translation.get(db, stop_name, lang='EN')
+            if stop_name_translation is not None:
+                stop_name = stop_name_translation.translation
+        town = part.split('-')[1].strip() if '-' in part else part
         town_translation = await translate_city_name(db, town)
         if town_translation is not None:
             town = town_translation
 
-        if town.replace("-", "") in stop_name or town in stop_name:
+        if stop_name and (town.replace("-", "") in stop_name or town in stop_name):
             # To avoid extra useless data such as "Kiryat Ono Terminal-Kiryat Ono"
             # or the horrifying "Modi'in Macabim Re'ut Central Station/Alighting-Modi'in-Makabim-Re'ut"
             return stop_name
         if town in towns and towns[town].match(stop_name):
             return stop_name
         else:
-            return f"{stop_name}-{town}"
+            if stop_name:
+                return f"{stop_name}-{town}"
+            else:
+                return town
 
-    return await translate_part(origin) + "<->" + await translate_part(destination)
+    if len(splitted) == 2:
+        origin, destination = splitted
+        origin_translation = await translate_part(origin)
+        dest_translation = await translate_part(destination)
+        return f'{origin_translation}<->{dest_translation}'
+    else:
+        print(f'one part, {route.route_long_name}')
+        return await translate_part(route.route_long_name)
 
 
 @cached_no_db(ttl=30*MINUTES)
@@ -233,7 +295,7 @@ async def get_rail_stations(db):
 
 
 @cached_no_db(ttl=60*MINUTES)
-async def get_nearby_stops(db, lat: float, lon: float, radius: int):
+async def get_nearby_stops(db, lat: float, lon: float, radius: int, return_ids_only: bool = False):
     """ Get stops in the specified radius (in meters) """
 
     radius_in_km = radius/1000
@@ -260,11 +322,14 @@ async def get_nearby_stops(db, lat: float, lon: float, radius: int):
         dist = geopy.distance.distance(latlon, (stop.stop_lat, stop.stop_lon)).meters
         # Narrow down the returned list into a circular radius
         if dist <= radius:
-            name = await Translation.get(db, stop.stop_name)
-            ret.append({"code": stop.stop_code,
-                        "name": name,
-                        "distance": round(dist, 2),
-                        "location": {"lat": stop.stop_lat,
-                                     "lon": stop.stop_lon}})
+            if return_ids_only:
+                ret.append(stop.stop_id)
+            else:
+                name = await Translation.get(db, stop.stop_name)
+                ret.append({"code": stop.stop_code,
+                            "name": name,
+                            "distance": round(dist, 2),
+                            "location": {"lat": stop.stop_lat,
+                                        "lon": stop.stop_lon}})
 
     return ret
