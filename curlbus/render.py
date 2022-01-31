@@ -107,6 +107,8 @@ def render_station_arrivals(stop_code: str, stop_info: dict, data: SIRIResponse)
 
     arrivals = data.visits[stop_code]
     header = [f"Stop #{stop_code}", stop_name]
+    if stop_info['address'] and 'city' in stop_info['address'] and stop_info['address']['city']:
+        header.append(stop_info['address']['city'])
     table_rows = []
     merged_arrivals = {}
     for arrival in arrivals:
