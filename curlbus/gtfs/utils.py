@@ -37,7 +37,7 @@ async def translate_city_name(db, city, lang='EN'):
     ret = None
     # Prefer the official GTFS translation database
     city_translation = await Translation.get(db, city)
-    if lang in city_translation:
+    if  lang in city_translation:
         ret = city_translation[lang]
     elif lang == 'EN':
         # Fall back to the government city database
@@ -51,6 +51,8 @@ async def translate_city_name(db, city, lang='EN'):
 async def get_translated_address(db, stop):
     """ Translates the 'city' value in a stop's address, if possible """
     address = stop.address
+    if not stop.address:
+        return None
     address['city_multilingual'] = {
         'HE': address['city']
     }

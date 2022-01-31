@@ -26,7 +26,8 @@
 import re
 from gino import Gino
 from sqlalchemy import select
-STOP_DESC_REGEX = re.compile("(?:רחוב:)(?P<street>.*)(?:עיר:)(?P<city>.*)(?:רציף:)(?P<platform>.*)(?:קומה:)(?P<floor>.*)")
+STOP_DESC_REGEX = re.compile(
+    "(?:רחוב:)(?P<street>.*)(?:עיר:)(?P<city>.*)(?:רציף:)(?P<platform>.*)(?:קומה:)(?P<floor>.*)")
 
 db = Gino()
 
@@ -81,9 +82,13 @@ class Stop(db.Model):
         if self._address is not None:
             return self._address
 
+        if not self.stop_desc:
+            return {}
+
         match = STOP_DESC_REGEX.match(self.stop_desc.strip())
         if match is not None:
-            self._address = {k: v.strip() for k, v in match.groupdict().items()}
+            self._address = {k: v.strip()
+                             for k, v in match.groupdict().items()}
         else:
             self._address = {}
         return self._address
@@ -187,7 +192,8 @@ class Translation(db.Model):
         # translations correctly use ", so use .replace
         source2 = source.replace("''", '"')
         try:
-            query = Translation.query.where(Translation.trans_id.in_([source,  source2]))
+            query = Translation.query.where(
+                Translation.trans_id.in_([source,  source2]))
             if lang is not None:
                 return await connection.first(query.where(Translation.lang == lang))
             else:
@@ -230,9 +236,10 @@ class TAShabbatStop(db.Model):
 
     @staticmethod
     async def get_mapped_stop_codes(connection, stop_ids):
-        query = select([TAShabbatStop.ta_stop_id, Stop.stop_code]).where(TAShabbatStop.ta_stop_id.in_(stop_ids)).where(Stop.stop_id == TAShabbatStop.stop_id)
+        query = select([TAShabbatStop.ta_stop_id, Stop.stop_code]).where(
+            TAShabbatStop.ta_stop_id.in_(stop_ids)).where(Stop.stop_id == TAShabbatStop.stop_id)
         result = await connection.all(query)
-        return { stop.ta_stop_id: stop.stop_code for stop in result }
+        return {stop.ta_stop_id: stop.stop_code for stop in result}
 
 
 tables = (Agency, Route, Trip, Stop, StopTime, Translation, City)
