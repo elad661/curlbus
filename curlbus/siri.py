@@ -25,7 +25,7 @@ import time
 from aiocache import SimpleMemoryCache
 from aiocache.base import BaseCache
 from itertools import zip_longest
-GROUP_SIZE = 25
+GROUP_SIZE = 120
 
 URL = None
 
