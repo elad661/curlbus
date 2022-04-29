@@ -207,10 +207,11 @@ def render_route_alternatives(operator_id: str, routes: list) -> str:
     for index, route in enumerate(routes):
         if '<->' in route['long_name']:
             separator = '<->'
-        else:
+        elif ' - ' in route['long_name']:
             separator = ' - '
+        elif ' אל ' in route['long_name']:
+            separator = ' אל '
         name_parts = route['long_name'].split(separator)
-        print(name_parts)
         ret.append("╭"+("─"*width)+"╮")
         ret.append("│" + name_parts[0].center(width) + "│")
         ret.append("│" + "▼".center(width) + "│")

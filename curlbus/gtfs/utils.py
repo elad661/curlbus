@@ -258,7 +258,6 @@ async def translate_route_name(db, route):
         dest_translation = await translate_part(destination)
         return f'{origin_translation}<->{dest_translation}'
     else:
-        print(f'one part, {route.route_long_name}')
         return await translate_part(route.route_long_name)
 
 

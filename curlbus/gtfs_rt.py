@@ -24,12 +24,14 @@ import aiohttp
 from aiocache import SimpleMemoryCache
 from dateutil import tz
 from google.transit.gtfs_realtime_pb2 import FeedMessage
+import google.transit.gtfs_realtime_pb2 as rt
 
 from .siri import SIRIResponse, SIRIStopVisit
 from .gtfs.utils import get_routes_for_trips
 from .gtfs.model import TAShabbatStop
 
-TELAVIV_FEED_URL = 'https://api.moovitapp.com/services-app/services/EX/API/RTGtfsExport?metroId=1&agencyId=1543519&API_KEY=tlv_shabat_8844131675'
+TELAVIV_FEED_URL = 'https://api.busnear.by/external/gtfsrt/export'
+TELAVIV_AUTH_KEY = 'tlv_848e1b42-c0c2'
 TELAVIV_GTFS_ID_PREFIX = 'ta'
 ISRAEL_TZ = tz.gettz('Asia/Jerusalem')
 
@@ -93,9 +95,10 @@ class GtfsRtVisit(SIRIStopVisit):
 
 class GtfsRtResponse(SIRIResponse):
     """ A `SIRIResponse` compatible object for represnting stop visits from GTFS-RT """
-    def __init__(self, feed: FeedMessage, requested_stop_codes: List[str], trips_data: Dict[str, Dict[str, str]], stops_mapping: Dict[str, str]):
+    def __init__(self, feed: FeedMessage, requested_stop_codes: List[str], trips_data: Dict[str, Dict[str, str]], stops_mapping: Dict[str, str], timestamp):
         self.errors = []
         self.visits: Dict[str, List[SIRIStopVisit]] = {code: [] for code in requested_stop_codes}
+        self.timestamp = timestamp
         vehicle_positions: Dict[str, Dict[str, str]] = {}
 
         for entity in feed.entity:
@@ -115,8 +118,12 @@ class GtfsRtResponse(SIRIResponse):
                     continue
                 stop_code = stops_mapping[stop_time_update.stop_id]
                 if stop_code in requested_stop_codes:
-                    trip_info = trips_data[trip_id]
-                    trip_info['trip_id'] = trip_id
+                    trip_info = None
+                    if trip_id in trips_data:
+                        trip_info = trips_data[trip_id]
+                        trip_info['trip_id'] = trip_id
+                    else:
+                        print('missing info for trip', trip_id)
                     vehicle = { 'id': trip_update.vehicle.id,
                                 'position': vehicle_positions[trip_update.vehicle.id]}
                     self.visits[stop_code].append(GtfsRtVisit(feed, stop_time_update, stop_code, trip_info, vehicle))
@@ -134,7 +141,7 @@ class GtfsRtClient(object):
         feed = await self.cache.get('feed')
         if feed is None:
             async with aiohttp.ClientSession() as session: # type: aiohttp.ClientSession
-                async with session.get(self.feed_url) as response: # type: aiohttp.ClientResponse
+                async with session.get(self.feed_url, headers={'Authorization': TELAVIV_AUTH_KEY}) as response: # type: aiohttp.ClientResponse
                     contents = await response.read()
                     feed: FeedMessage = FeedMessage()
                     feed.ParseFromString(contents)
@@ -152,6 +159,7 @@ class GtfsRtClient(object):
         stops_for_query = set()
         trips_data: Dict[str, Dict[str, str]] = {}
         stops_mapping: Dict[str, str] = {}
+        timestamp = feed.header.timestamp
 
         for entity in feed.entity:
             if not entity.HasField('trip_update'):
@@ -181,4 +189,4 @@ class GtfsRtClient(object):
             await self.cache.set(f'stop:{stop_id}', stop_code, ttl = 30 * MINUTES)
 
         # cool, we know about the routes/stops. Now to create "visits" and assign them to stops
-        return GtfsRtResponse(feed, stop_codes, trips_data, stops_mapping)
+        return GtfsRtResponse(feed, stop_codes, trips_data, stops_mapping, timestamp)

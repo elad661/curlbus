@@ -239,7 +239,12 @@ class TAShabbatStop(db.Model):
         query = select([TAShabbatStop.ta_stop_id, Stop.stop_code]).where(
             TAShabbatStop.ta_stop_id.in_(stop_ids)).where(Stop.stop_id == TAShabbatStop.stop_id)
         result = await connection.all(query)
-        return {stop.ta_stop_id: stop.stop_code for stop in result}
+        ret = {stop.ta_stop_id: stop.stop_code for stop in result}
+        missing_ids = set(stop_ids) - set(ret.keys())
+        if len(missing_ids) > 0:
+            matching_stops = await connection.all(select([Stop.stop_id, Stop.stop_code]).where(Stop.stop_id.in_(missing_ids)))
+            ret.update({stop.stop_id: stop.stop_code for stop in matching_stops})
+        return ret
 
 
 tables = (Agency, Route, Trip, Stop, StopTime, Translation, City)
