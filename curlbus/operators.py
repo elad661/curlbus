@@ -24,6 +24,9 @@ operators = {'rail': 2,
              'dan_beersheba': 32,
              'cable_express': 33,  # ??????
              'tnufa': 34,
+             'bietshemesh': 35,
+             'extra': 37,
+             'extra_jlm': 38,
              # East Jerusalem operators - not a lot of info online, so I might
              # be committing horrible spelling mistakes here
              'jlm_ramalla': 42,
@@ -73,6 +76,9 @@ operator_names = {2: "Israel Railways",
                   32: "Dan Beersheba",
                   33: "Cable Express (?)",  # ????
                   34: "Tnufa",
+                  35: "Beit Shemesh Express",
+                  37: "Extra",
+                  38: "Extra Jerusalem",
                   # Not sure about the spelling here, I just guessed
                   42: "Jerusalem - Ramalla",
                   44: "Jerusalem - Abu Tor",
