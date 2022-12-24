@@ -153,6 +153,11 @@ class SIRIClient(object):
                         json_response = await raw_response.json(encoding="utf-8")
                     except UnicodeDecodeError:
                         json_response = await raw_response.json()
+                    except aiohttp.ContentTypeError as e:
+                        print('Content type error', e)
+                        print(await raw_response.text())
+                        raise e
+
                     response = SIRIResponse(json_response, group, self.verbose)
                     if ret:
                         # Merge SIRIResponse objects if we have more than

@@ -100,13 +100,24 @@ class CurlbusServer(object):
     async def realtime_request(self, request, stop_codes):
         client: SIRIClient = request.app['siriclient']
         gtfs_rt_client: GtfsRtClient = request.app['gtfs-rt-client']
-        response = await client.request(stop_codes)
-
         today = datetime.now().isoweekday()
+        response = None
+        try:
+            response = await client.request(stop_codes)
+        except Exception as e:
+            if today not in [5, 6]:
+                raise e
+            else:
+                print('MOT SIRI Error')
+                print(e)
+
         if today in [5, 6]:
             # municipal buses are weekend only, so only query them on the weekend
             gtfs_rt_response = await gtfs_rt_client.request(stop_codes)
-            response.append(gtfs_rt_response)
+            if response:
+                response.append(gtfs_rt_response)
+            else:
+                return gtfs_rt_response
 
         return response
 
