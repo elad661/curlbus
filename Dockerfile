@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 MAINTAINER Guy Sheffer <guysoft at gmail dot com>
 
 EXPOSE 80
@@ -16,7 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     unzip \
     postgresql-client-common \
-    postgresql-client-10 \
+    postgresql-client-14 \
+  && update-ca-certificates \
   && rm -rf /var/lib/apt/lists/* \
   && apt -qyy clean
 

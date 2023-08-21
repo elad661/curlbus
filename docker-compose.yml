@@ -1,4 +1,4 @@
-version: '3.1'
+version: '3'
 
 services:
   curlbus:
@@ -11,20 +11,26 @@ services:
     tty: true
     links:
       - "db:postgres"
-    #ports:
-    #  - 8081:80
+    ports:
+      - 8080:80
 
   db:
-    image: postgres
+    image: postgres:14
     restart: always
     container_name: curlbus-db
     environment:
       POSTGRES_PASSWORD: example
       POSTGRES_DB: curlbus
+    volumes:
+       - postgres:/data/postgres
 
   #adminer:
     #image: adminer
     #restart: always
     #ports:
       #- 8080:8080
+
+
+volumes:
+  postgres:
 
