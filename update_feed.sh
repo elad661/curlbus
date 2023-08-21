@@ -5,7 +5,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 
 pushd ${DIR}
     POSTGRES_DSN="$(python3 -c 'import configparser; c = configparser.ConfigParser(); c.read("config.ini"); print(c["gino"]["dsn"])')"
-    wget ftp://gtfs.mot.gov.il/israel-public-transportation.zip -O israel-public-transportation.zip
+    wget --no-check-certificate https://gtfs.mot.gov.il/gtfsfiles/israel-public-transportation.zip -O israel-public-transportation.zip
     python3 create_tables.py
     TEMP_DIR="$(mktemp -d)"
     unzip israel-public-transportation.zip -d "$TEMP_DIR"
